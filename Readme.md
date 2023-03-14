@@ -35,16 +35,34 @@ $ ./emsdk activate latest
 
 ```
 $ npm install
-$ npm build
+$ npm run build
 ```
 
 これで ``./dist`` をターゲットにデバッグ仕様のビルドが行われます。
 
 ```
-$ npm server
+$ npm run server
 ```
 
 としてデバッグ用のサーバーを立ち上げてブラウザで ``http://localhost:8000/`` にアクセスすれば動作確認を行えます。
+
+```
+$ npm run release-build
+```
+
+でリリース用ビルドが行えます。
+
+再びデバッグ用ビルドをするには、
+
+```
+$ npm run rebuild
+```
+
+とします。
+
+最新のリリースビルドが残っているときは ``rebuild`` でないと上書きされません。``release-build`` はタイムスタンプを見ず必ずフルビルドが行われます。
+
+
 
 謝辞
 --

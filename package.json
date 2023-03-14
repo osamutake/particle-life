@@ -6,6 +6,8 @@
   "scripts": {
     "test": "eslint src/*.js",
     "build": "make",
+    "clean": "make clean",
+    "release-build": "make release-build",
     "server": "ruby httpserver.rb"
   },
   "author": "Osamu Takeuchi <osamu@big.jp>",
