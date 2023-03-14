@@ -1,0 +1,230 @@
+<!-----------------------------------------------------------------
+
+  相互作用を表示・編集するコントロール
+  css は bulma を使用
+
+  props = {
+    width
+    height
+  }
+
+  state = {
+    current_ij : false
+  }
+
+----------------------------------------------------------------->
+
+<interaction-editor>
+
+  <div class="container">
+    <canvas id="matrix" width={ props.width } height={ props.width }></canvas><br>
+    <canvas id="scale"  width={ props.width } height="40"></canvas>
+    <div id="a" class="arrow" if={ state.current_ij }></div>
+    <div id="b" class="arrow" if={ state.current_ij }></div>
+    <div id="scale-text" if={ state.current_ij }>{ scaleText() }</div>
+    <div id="cursor" if={ state.current_ij }></div>
+  </div>
+
+  <style type="scss">
+    :host {
+      .container {
+        position: relative;
+        line-height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+      canvas {
+        z-index: -1;
+        margin: 0px;
+        padding: 0px;
+        touch-action: none;
+      }
+      #scale-text {
+        text-align: center;
+        color: white;
+        padding-top: 10px;
+      }
+      #scale {
+        position: absolute;
+      }
+      .arrow {
+        --value: 0px;
+        position: absolute;
+        left: calc(var(--value) - 5px);
+        width: 0;
+        height: 0;
+        border-bottom: 8px solid white;
+        border-right: 5px transparent solid;
+        border-left: 5px transparent solid;
+      }
+      #cursor {
+        position: absolute;
+        border: #c6c solid 4px;
+        pointer-events: none;
+      }
+    }
+  </style>
+
+  <script>
+    export default {
+      onMounted() {
+        util.implementEventTarget(this);
+
+        const scale_canvas = this.$("#scale");
+        const scale_g = scale_canvas.getContext("2d");
+        scale_g.scale(scale_canvas.width, scale_canvas.height);
+        
+        this.state = {
+          current_ij : false
+        }
+
+        this.update();
+        
+        const viewer = this.$("#matrix");
+        
+        const e2ij = (e) => {
+          if(!this.world) return null;
+          const n = this.world.nspecies;
+          const crect = viewer.getBoundingClientRect();
+          const ij = [
+            Math.floor((e.clientY-crect.top ) / viewer.height * (n+1)) - 1,
+            Math.floor((e.clientX-crect.left) / viewer.width  * (n+1)) - 1
+          ];
+          if (ij[0] < 0 || ij[0] >= n || 
+              ij[1] < 0 || ij[1] >= n) {
+            return null;
+          }
+          return ij;
+        };
+
+        let dragging = null;
+        this.defineDragBehavior(viewer, {
+          down: (e, x, y)=> {
+            e.preventDefault();
+            dragging = e2ij(e);
+            this.update({ current_ij: dragging });
+          },
+          move: (e, mouseDown, newX, newY, oldX, oldY)=> {
+            if (dragging == null) {
+              this.update({ current_ij: e2ij(e) });
+              return;
+            }
+            e.preventDefault();
+
+            const dx = newX - oldX;
+            const dy = newY - oldY;
+
+            [a, b] = this.world.interaction.get(...dragging);
+            a += dy * 0.0000025; if(a >= -0.0005) a = -0.0005;
+            b -= dx * 0.0000025;
+            this.world.interaction.set(...dragging, a, b);
+            this.update({ current_ij: dragging });
+          },
+          up: (e, x, y)=> {
+            dragging = null;
+            this.update({ current_ij: e2ij(e) });
+          }
+        });
+
+        viewer.addEventListener('pointerleave', (e)=> {
+          if(!dragging)
+            this.update({ current_ij: null });
+        });
+
+      },
+
+      scaleText() {
+        if(!this.state.current_ij) return "";
+        const [i, j] = this.state.current_ij;
+        const [a, b] = this.world.interaction.get(i, j);
+        return `#${i+1} が #${j+1} から受ける力 ` +
+               `(核 ${Math.round(-a/0.0015*100)/100}, 周 ${Math.round(-b/0.0005*100)/100})`;
+      },
+
+      onUpdated(props, state) {
+        // right after the component template is updated after an update call
+        this.render_matrix();
+        this.render_scale();
+
+        if(this.state.current_ij) {
+          const [i, j] = this.state.current_ij;
+          const [a, b] = this.world.interaction.get(i, j);
+          const w = this.props.width;
+          const ax = Math.round(-a/0.0015 * w/2 + w/2);
+          this.$('#a').style.setProperty("--value", Math.min(w, Math.max(0, ax)) + "px");
+          this.$('#a').style.borderBottomColor = (ax < 0 || w < ax) ? "red" : "white";
+          this.$('#a').style.top = props.width + "px";
+          const bx = Math.round(-b/0.0005 * w/2 + w/2);
+          this.$('#b').style.setProperty("--value", Math.min(w, Math.max(0, bx)) + "px");
+          this.$('#b').style.borderBottomColor = (bx < 0 || w < bx) ? "red" : "white";
+          this.$('#b').style.top = props.width + "px";
+
+          const n = this.world.nspecies;
+          this.$('#cursor').style.left = props.width * (1+j)/(n+1) + props.width/(n+1)*0.1 + "px";
+          this.$('#cursor').style.top  = props.width * (1+i)/(n+1) + props.width/(n+1)*0.1 + "px";
+          this.$('#cursor').style.width   = props.width/(n+1)*0.9 + "px";
+          this.$('#cursor').style.height  = props.width/(n+1)*0.9 + "px";
+        }
+        this.dispatchEvent("update", null);
+      },
+
+      render_matrix() {
+        if(!this.world) return;
+      
+        const n = this.world.nspecies;
+
+        const canvas = this.$("#matrix");
+        const g = canvas.getContext('2d');
+        const palette = [...Array(n)].map((_, i) => this.colorFunc(i/n));
+        
+        const dist = new PLSpeciesDistribution(n, this.world.particles);
+        const dist_max = Math.max(...dist.distribution) * 1.2;
+        
+        g.setTransform(1,0,0,1,0,0);
+        g.scale(canvas.width/(n+1), canvas.height/(n+1));
+        g.fillStyle = '#fff';
+        g.fillRect(0, 0, n+1, n+1);
+
+        for(let i = 0; i < n; i++) {
+          // 左側のマーク
+          g.beginPath();
+          g.fillStyle = palette[i];
+          g.arc(0.3, 1.5 + i, 0.3, 0, 2 * Math.PI);
+          g.fill();
+          
+          // 上のマーク
+          g.beginPath();
+          g.fillStyle = palette[i];
+          g.arc(1.5 + i, 0.5, 0.3, 0, 2 * Math.PI);
+          g.fill();
+
+          g.fillStyle = "#3c3";
+          g.fillRect(0.7, 1.1 + i + (1-dist.distribution[i]/dist_max)*0.9, 0.2, dist.distribution[i]/dist_max*0.9);
+
+          if(!this.colorScale) return;
+          for(let j = 0; j < n; j++) {
+            let [a, b] = this.world.interaction.get(i, j);
+            if(i==j) {
+              g.fillStyle = "#fff";
+              g.fillRect(1.05 + j, 1.05 + i, 0.9, 0.9);
+            }
+            g.fillStyle = this.colorScale.color((-b / 0.0005+1)/2);
+            g.fillRect(1.1 + j, 1.1 + i, 0.9, 0.9);
+            g.fillStyle = this.colorScale.color((-a / 0.0015+1)/2);
+            g.fillRect(1.1 + j, 1.1 + i, 0.5, 0.5);
+          }
+        }
+      },
+
+      render_scale() {
+        if(!this.colorScale) return;
+        const g = this.$("#scale").getContext("2d");
+        for(let i = 0; i < 200; i++) {
+          g.fillStyle = this.colorScale.color(i/200);
+          g.fillRect(i/200, 0, 1/200+0.01, 1);
+        }
+      }
+
+    }
+  </script>
+</interaction-editor>

@@ -1,0 +1,137 @@
+<!-----------------------------------------------------------------
+
+  カラースケールを選択、制御するためのコントロール
+  css は bulma を使用
+
+  props = {
+    colorScaleList: カラースケールの配列
+    width: コントロールサイズ
+    height: コントロールサイズ
+  }
+
+  state = {
+    iscale: 0,  // カラースケール番号
+    offset: 0,  // カラースケール開始オフセット
+    scale:  1,  // カラースケールのスケール
+  };
+
+  // カラースケールが変更されたことを知らせるイベント
+  component.addEventListener("update", (e) => {
+    const colorFunc = e.detail
+    const color = colorFunc(x)  // x は [0, 1) の範囲
+    g.fillStyle = color;        // そのまま style に代入可能
+  })
+
+----------------------------------------------------------------->
+
+<color-scale-editor>
+
+  <div class="field has-addons">
+    <div class="control has-canvas">
+      <canvas></canvas>
+    </div>
+    <div class="control">
+      <a class="button" onclick={ ()=> update({ iscale: state.iscale + 1 }) }>
+        <span class="icon is-small"><ion-icon name="swap-vertical"></ion-icon></span>
+      </a>
+    </div>
+  </div>
+
+  <style type="scss">
+    :host {
+      --ctrl-height: 40px;
+      --ctrl-width: 600px;
+      display: inline-block;
+      width: var(--ctrl-width);
+
+      a.button {
+        width: var(--ctrl-height);
+        height: var(--ctrl-height);
+      }
+   
+      .has-canvas {
+        width: calc(100% - var(--ctrl-height));
+      }
+
+      canvas {
+        width: 100%;
+        height: var(--ctrl-height);
+        margin: 0px;
+        touch-action: none;
+        cursor: all-scroll;
+      }
+    }
+  </style>
+  
+  <script>
+    export default {
+      onMounted() {
+        // EventTarget としての動作を行う
+        util.implementEventTarget(this)
+
+        if(this.props.width)
+          this.root.style.setProperty('--ctrl-width', `${this.props.width}px`)
+        if(this.props.height)
+          this.root.style.setProperty('--ctrl-height', `${this.props.height}px`)
+      
+        const canvas = this.$("canvas")
+        const g = canvas.getContext("2d")
+        g.scale(canvas.width, canvas.height)
+
+        this.state = {
+          iscale: 0,
+          offset: 0,
+          scale:  1,
+        }
+        this.update()
+        
+        // ドラッグ動作を規定
+
+        this.defineDragBehavior(canvas, {
+          down: (e, x, y) => {
+            e.preventDefault()
+          },
+          move: (e, mouseDown, newX, newY, oldX, oldY) => {
+            if(!mouseDown) return;
+            e.preventDefault()
+
+            const [dx, dy] = [newX - oldX, newY - oldY]
+            this.state.scale /= 1 + dy / canvas.height
+            this.state.offset -= dx / canvas.width / this.state.scale / 2
+            this.update()
+          },
+        }) 
+      },
+
+      // state の更新処理
+
+      onBeforeUpdate(props, state) {
+        // 適切な範囲に直す
+        state.iscale = (state.iscale + this.props.colorScaleList.length) % this.props.colorScaleList.length;
+        state.offset -= Math.floor(state.offset); 
+        state.scale = Math.min(100, Math.max(1, state.scale));
+      },
+
+      onUpdated(props, state) {
+        // 描画する
+        const scale = this.props.colorScaleList[state.iscale];
+        const x2color = (x) => {
+          x = x / state.scale + state.offset;
+          return scale.color(x - Math.floor(x));
+        }
+
+        const canvas = this.$("canvas");
+        const g = canvas.getContext("2d");
+        const n = 200
+        for(let i = 0; i < n; i++) {
+          let x = i / n;
+          g.fillStyle = x2color(x)
+          g.fillRect(x, 0, x + 1.1 / n, 1)
+        }
+        
+        // 数値を色に直す関数（カラースケール）を通知する
+        this.dispatchEvent("update", x2color)
+      },
+    }
+  </script>
+</color-scale-editor>

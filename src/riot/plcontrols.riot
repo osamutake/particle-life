@@ -1,0 +1,219 @@
+<!-----------------------------------------------------------------
+
+  ワールド生成パラメータを制御するためのコントロール
+  css は bulma を使用
+
+  props = {
+  }
+
+  this.state = {
+    pause: false,
+    recording: false,
+    interact_seed: 2**53 * Math.random(),
+    world_seed: 2**53 * Math.random(),
+    nspecies: 6,
+    nlattice: 30,
+    scale: 1,
+    tail: 0,
+    maxfps: 20,
+    intset: "",
+  };
+
+  EVENTS: どれも e.detail には state が入る
+    update
+    restart
+    pause
+    record
+
+----------------------------------------------------------------->
+
+<plcontrols>
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="interact_seed" class="label">相互作用シード</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" id="interact_seed" type="text" value={ state.interact_seed } size="15">
+        </div>
+        <div class="control">
+          <a class="button is-info" onclick={ regenerateInteractionSeed }>
+            再生成
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="world_seed" class="label">粒子配置シード</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" id="world_seed" type="text" value={ state.world_seed } size="15">
+        </div>
+        <div class="control">
+          <a class="button is-info" onclick={ regenerateWorldSeed }>
+            再生成
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="nspecies" class="label">粒子種数</label>
+      <div class="control">
+        <input class="input" id="nspecies" type="text" value={state.nspecies} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="nparticles" class="label">√粒子数</label>
+      <div class="control">
+        <input class="input" id="nlattice" type="text" value={state.nlattice} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="scale" class="label">スケール</label>
+      <div class="control">
+        <input class="input" id="scale" type="text"  value={state.scale} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="interact_seed" class="label">描画制御</label>
+      <div class="field has-addons">
+        <p class="control">
+          <button class="button" onclick={ ()=> dispatchEvent("restart", state) }>
+            <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+          </button>
+        </p>
+        <p class="control">
+          <button id="pause" class={ state.pause ? "button is-danger" : "button" }
+                  onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } }>
+            <span class="icon is-small"><ion-icon name={ state.pause ? "play" : "pause" }></ion-icon></span>
+          </button>
+        </p>
+        <p class="control">
+          <button id="recording" class={ state.recording ? "button is-danger" : "button" } 
+                  onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } }>
+            <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
+          </button>
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="interact_seed" class="label">相互作用セット</label>
+        <div class="select">
+          <select id="intset" value={state.intset} onchange={ editorChanged }>
+            <option value="">デフォルト
+            <option value="A">多粒子種補正A</option>
+            <option value="B">多粒子種補正B</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="tail" class="label">尾の長さ</label>
+      <div class="control">
+        <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="maxfps" class="label">最大fps</label>
+      <div class="control">
+        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
+      </div>
+    </div>
+  </div>
+
+  <style type="scss">
+    :host span.icon {
+      margin: 0px -2px !important;
+    }
+  </style>
+
+  <script>
+    export default {
+      onMounted() {
+        util.implementEventTarget(this);
+
+        this.state = {
+          pause: false,
+          recording: false,
+          interact_seed: 2**53 * Math.random(),
+          world_seed: 2**53 * Math.random(),
+          nspecies: 6,
+          nlattice: 30,
+          scale: 1,
+          tail: 0,
+          maxfps: 20,
+          intset: "",
+        };
+        this.update();
+      },
+
+      validatedState(randomize) {
+        if(randomize) {
+          this.update({ 
+              interact_seed: 2**53 * Math.random(),
+              world_seed:    2**53 * Math.random()
+          });
+        }
+
+        let result = Object.assign({}, this.state);
+        for(let k of Object.keys(this.state.validation.errors.errors)) {
+          delete result[k];
+        }
+        delete result.validation;
+        return result;
+      },
+
+      editorChanged(e) {
+        let {id, value} = e.target;
+        this.update(Object.fromEntries([[id, value]]));
+        if(["nspecies", "nlattice", "scale", "intset"].includes(e.target.id))
+          this.dispatchEvent("restart", this.state);
+      },
+
+      regenerateInteractionSeed() {
+        this.update({ interact_seed: 2**53 * Math.random() });
+        this.dispatchEvent("restart", this.state);
+      },
+      regenerateWorldSeed() {
+        this.update({ world_seed: 2**53 * Math.random() });
+        this.dispatchEvent("restart", this.state);
+      },
+
+      onBeforeUpdate(props, state) {
+        // allows recalculation of context data before the update
+        const rule = {
+          pause: 'boolean',
+          recording: 'boolean',
+          interact_seed: ['required', 'integer', 'min:1'],
+          world_seed: ['required', 'integer', 'min:1'],
+          nspecies: ['required', 'integer', 'between:1,50'],
+          nlattice: ['required', 'integer', 'between:5,150'],
+          scale: ['required', 'numeric', 'between:1,10'],
+          tail: ['required', 'numeric', 'min:0'],
+          maxfps: ['required', 'numeric', 'between:0,1000'],
+          intset: ['required', 'regex:/^[A-Z]?$/'],
+        };
+
+        state.validation = new Validator(state, rule);
+        state.validation.passes();  // check!
+
+        for(let id of Object.keys(rule)) {
+          if(state.validation.errors.errors[id]) {
+            this.$('#'+id).classList.add('is-danger');
+            state[id] = this.state[id]; // not changing
+          } else {
+            this.$('#'+id).classList.remove('is-danger');
+          }
+        }
+      },
+
+      onUpdated(props, state) {
+        // right after the component template is updated after an update call
+          this.dispatchEvent("update", this.state);
+      },
+    }
+  </script>
+</plcontrols>

@@ -1,0 +1,5 @@
+/emsdk
+/node_modules
+/obj/*.js
+*.BAK
+*~

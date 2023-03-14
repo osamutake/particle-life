@@ -1,0 +1,20 @@
+<!--
+  https://riot.js.org/ja/documentation/
+  ‚É‚ ‚é•¶Žš—ñ‚ð html ‚É’¼‚·‚½‚ß‚Ìƒ^ƒO
+-->
+
+<raw>
+  <script>
+    export default {
+      setInnerHTML() {
+        this.root.innerHTML = this.props.html
+      },
+      onMounted() {
+        this.setInnerHTML()
+      },
+      onUpdated() {
+        this.setInnerHTML()
+      }
+    }
+  </script>
+</raw>

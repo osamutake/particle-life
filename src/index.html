@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="粒子に命が宿る世界を覗き見るサイトです(?)">
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@osamu_takeuchi" />
+    <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/particle-life/" />
+    <meta property="og:title" content="Particle Life | 武内＠筑波大" />
+    <meta property="og:description" content="粒子に命が宿る世界を覗き見るサイトです(?)" />
+    <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/particle-life/og_image.png" />
+ 
+    <title>Particle Life</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" 
+      integrity="sha256-rTpdO0HXBCNpreAHcu6tB2Ppg515Vo+5GtYSsnNLz+8=" crossorigin="anonymous">
+    <script type="module" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule="" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
+    <!-- https://www.jsdelivr.com/package/npm/validatorjs -->
+    <script src="https://cdn.jsdelivr.net/npm/validatorjs@3.22.1/dist/validator.min.js"></script>
+    <script src="./particle-life.js"></script>
+  </head>
+  <body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title is-1">Particle Life</h1>
+
+      <p>粒子に命が宿る世界を覗き見るサイトです(?)</p>
+      <br>
+      <div style="margin-bottom:4px">
+        <a class="button is-info" id="new-world">新しいワールドを生成</a>
+        <a class="button is-info" id="show-editor">ワールドエディタ表示/非表示</a>
+        <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
+      </div>
+
+      <div class="columns">
+        <div class="column is-narrow">
+        <particles-display width="600" height="600"></particles-display><br>
+        <color-scale-editor width="600" height="40"></color-scale-editor>
+        </div>
+        <div class="column is-narrow" id="world-editor">
+          <interaction-editor width="600"></interaction-editor>
+        </div>
+      </div>
+
+      <div class="columns">
+        <plcontrols></plcontrols>
+      </div>
+
+      <div id="video"></div>
+
+    </div>
+  </section>
+  </body>
+</html>

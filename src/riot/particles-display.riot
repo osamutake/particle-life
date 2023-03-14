@@ -1,0 +1,172 @@
+<!-----------------------------------------------------------------
+
+  粒子を表示するコントロール
+  css は bulma を使用
+
+  props = {
+    width
+    height
+  }
+  state = {
+    repelX: 0,  // 外から参照されることを想定
+    repelY: 0,  // 外から参照されることを想定
+    offsetX: 0,   // 内部でのみ使われる
+    offsetY: 0,   // 内部でのみ使われる
+    tail: 0       // 内部でのみ使われる
+  }
+
+----------------------------------------------------------------->
+
+<particles-display>
+  <canvas width={props.width} height={props.height}></canvas>
+
+  <style type="scss">
+    :host {
+      > div {
+        margin: 0px;
+      }
+      canvas {
+        touch-action: none;
+        margin: 0px;
+      }
+    }
+  </style>
+
+  <script>
+    export default {
+
+      onMounted() {
+
+        this.state = {
+          repelX: NaN,
+          repelY: NaN,
+          offsetX: 0,
+          offsetY: 0,
+          tail: 0
+        }
+
+        let canvas = this.$('canvas');
+
+        // スクロール処理に使うワーキングキャンバスを作成
+        this.workingCanvas = canvas.cloneNode();
+
+        let g = canvas.getContext('2d');
+        g.scale(canvas.width, canvas.height);
+        g.translate(0.5, 0.5);
+        
+        // マウス座標から x, y 座標に直す
+        const mouse2xy = (mouseX, mouseY) => {
+          return [
+            mouseX / canvas.width  - 0.5 + this.state.offsetX, 
+            mouseY / canvas.height - 0.5 + this.state.offsetY
+          ];
+        };
+          
+        let canvasTapCount = 0;
+        let mouseDoubleDown = false;
+        this.defineDragBehavior( canvas, {
+          down: (e, x, y) => {
+          	if( canvasTapCount == 0 ) {
+            	// シングルタップ
+          		canvasTapCount++;
+          		setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
+
+          	} else {
+            	// ダブルタップ
+          		canvasTapCount = 0 ;
+
+              mouseDoubleDown = true;
+              [this.state.repelX, this.state.repelY] = mouse2xy(x, y)
+          	}
+          },
+          move: (e, mouseDown, newX, newY, oldX, oldY) => {
+            if(mouseDown) {
+              if(!mouseDoubleDown) {
+                // スクロールする
+                const [dx, dy] = [newX - oldX, newY - oldY];
+                this.scroll(dx, dy);
+                this.state.offsetX -= dx / canvas.width; 
+                this.state.offsetX -= Math.round(this.state.offsetX);
+                this.state.offsetY -= dy / canvas.height; 
+                this.state.offsetY -= Math.round(this.state.offsetY);
+              } else {
+                [this.state.repelX, this.state.repelY] = mouse2xy(newX, newY)
+              }
+            }
+          },
+          up: (e, x, y) => {
+            mouseDoubleDown = false;
+            [this.state.repelX, this.state.repelY] = [NaN, NaN]
+          }
+        });
+
+      },
+
+      // 画面をスクロールする
+      // TODO: そもそも裏で普通に書いておいて offset でずらしたところに
+      //       貼り付ける方が良い気がしてきた
+      scroll(dx, dy) {
+        let canvas = this.$('canvas');
+        let wcanvas = this.workingCanvas;
+        wcanvas.getContext('2d').drawImage(canvas, 0, 0); // そのままコピーする
+
+        const g = canvas.getContext('2d');
+        g.setTransform(1,0,0,1,0,0);
+        g.globalAlpha = 1;
+        
+        const [w, h] = [canvas.width, canvas.height];
+        const region = (sx, sy) => {  // ４象限を計算する
+          const x1 = (w - dx) % w; const y1 = (h - dy) % h; 
+          const x2 = (dx + w) % w; const y2 = (dy + h) % h; 
+          return [
+            Math.min(x1, sx ? 0 : w),  Math.min(y1, sy ? 0 : h),
+            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)), 
+            Math.min(x2, sx ? w : 0),  Math.min(y2, sy ? h : 0),
+            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)) ];
+        }
+
+        g.drawImage(wcanvas, ...region(0, 0));
+        g.drawImage(wcanvas, ...region(1, 0));
+        g.drawImage(wcanvas, ...region(0, 1));
+        g.drawImage(wcanvas, ...region(1, 1));
+
+        g.scale(canvas.width, canvas.height);
+        g.translate(0.5, 0.5);
+      },
+
+      // 描画する
+      render(world, colorFunc) {
+        if(!world || !colorFunc) return;
+
+        let canvas = this.$('canvas');
+        g = canvas.getContext('2d');
+
+        // 背景塗りつぶし
+        let style = '#000000';  // 真っ黒
+        if( this.state.tail > 0 ) {  
+          // 尾を引かせるときは alpha を指定する
+          style += ('0' + ((255 / (1.0 + 1.0 * this.state.tail)) | 0).toString(16)).substr(-2);
+        }
+        g.fillStyle = style;
+        g.fillRect(-0.5, -0.5, 1, 1);
+        
+        // パレットを作成
+        const n = world.nspecies;
+        const palette = [...Array(n)].map((_, i) => colorFunc(i/n));
+
+        // 粒子の描画
+        const r = world.particle_radius;
+        const ox = this.state.offsetX;
+        const oy = this.state.offsetY;
+        world.particles.forEach( (sp, x, y) => {
+          g.beginPath();
+          g.fillStyle = palette[sp];
+          x -= ox; x -= Math.round(x);
+          y -= oy; y -= Math.round(y);
+          g.arc(x, y, r, 0, 2 * Math.PI);
+          g.fill();
+        });
+      }
+    }
+  </script>
+</particles-display>

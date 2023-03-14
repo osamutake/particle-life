@@ -1,0 +1,23 @@
+{
+  "name": "particle-life",
+  "version": "0.3.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "eslint src/*.js",
+    "build": "make",
+    "server": "ruby httpserver.rb"
+  },
+  "author": "Osamu Takeuchi <osamu@big.jp>",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/core": "^7.21.0",
+    "@riotjs/cli": "^6.1.0",
+    "esbuild": "^0.17.11",
+    "riot": "^7.1.0",
+    "sass": "^1.58.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0"
+  }
+}
