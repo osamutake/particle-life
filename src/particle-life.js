@@ -10,7 +10,7 @@
 
 import { PLInteractionMatrix } from './pl-interaction-matrix.js'
 import { PLParticles } from './pl-particles.js'
-import { PLParticleSorter } from './pl-particle-sorter.js'
+import { PLParticleGrid } from './pl-particle-grid.js'
 
 export class ParticleLife {
   constructor(options = {}, rand) {
@@ -28,7 +28,13 @@ export class ParticleLife {
 
     this.interaction = new PLInteractionMatrix(options);
     this.particles = new PLParticles(this.nparticles);
-    this.particleSorter = new PLParticleSorter(this.particles);
+
+    let division;
+    for(division = 0; 1.0/(1 << division) > options.rmax * 2; division++)
+      ;
+    division-=2;
+    if(division >= 2) 
+      this.grid = new PLParticleGrid(this.particles, division);
 
     // C++ 用の構造体
     this.mem = wasm.i32.alloc(8); // 7 で良いけど切りが良いので
@@ -46,6 +52,7 @@ export class ParticleLife {
     util.destruct(this.rand);
     util.destruct(this.interaction);
     util.destruct(this.particles);
+    util.destruct(this.grid);
   }
 
   // 粒子配置の初期設定
@@ -59,9 +66,20 @@ export class ParticleLife {
   
   // 粒子同士の相互作用を計算して vx, vy を更新する
   interactParticles() {
-    this.particleSorter.sort();
-    wasm.interactParticles(
-        this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, this.particleSorter.mem.ptr);
+    if(this.grid) {
+      this.grid.update();
+      const ngrid = 2**this.grid.division;
+      for(let i = 0; i < ngrid; i++) {
+        for(let j = 0; j < ngrid; j++) {
+          wasm.interactAdjucentParticles(
+            this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
+            this.grid.work.ptr, this.grid.adjacent(i, j));
+        }
+      }
+    } else {
+      wasm.interactParticles(
+        this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr);
+    }
   }
   
   // 斥力効果を及ぼす

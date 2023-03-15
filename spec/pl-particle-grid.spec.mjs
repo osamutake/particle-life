@@ -21,6 +21,7 @@ describe("PLParticleGrid", function () {
     particles.set(7, 0,  0.2, -0.2, 0, 0);
 
     let grid = new PLParticleGrid(particles, 1);
+    grid.update();
 
     const collectAsArray = (i, j) => [...Array(grid.collect(i, j))].map((_, k)=>grid.work[k]);
 
@@ -63,6 +64,7 @@ console.log(Util.int2hex(particles.mem[6*7+2])+" "+Util.int2hex(particles.mem[6*
     particles.set(7, 0,  0.4, -0.4, 0, 0);  // 12
 
     let grid = new PLParticleGrid(particles, 2);
+    grid.update();
 
     const collectAsArray = (i, j) => [...Array(grid.collect(i, j))].map((_, k)=>grid.work[k]);
 

@@ -8,8 +8,6 @@ export class PLParticleGrid {
     this.mem  = wasm.u32.alloc(particles.n);
     this.indices = wasm.i32.alloc( (2 ** division) ** 2 + 1);
     this.work = wasm.u32.alloc(particles.n);
-
-    this.update();
   }
  
   destructor() {

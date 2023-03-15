@@ -66,6 +66,49 @@ int64_t calcAccel(world_t *world, interact_t *interact, int64_t d)
 void EMSCRIPTEN_KEEPALIVE interactParticles(
         world_t *world,
         interact_t *interact,
+        particle_t *particles) {
+
+    int32_t rmax = world->rmax;
+    int64_t rmax2 = (int64_t)world->rmax * world->rmax;
+
+    particle_t *guard = particles + world->nparticles;
+    for(particle_t *p = particles; p < guard; p++) {
+        interact_t *pinteract = interact + 2 * world->nspecies * p->species;
+        int32_t px = p->x;
+        int32_t py = p->y;
+        
+        for(particle_t *q = p + 1; q < guard; q++) {
+
+            int32_t dx = q->x - px;
+            if(std::abs(dx) > rmax) continue;
+
+            int32_t dy = q->y - py;
+            if(std::abs(dy) > rmax) continue;
+
+            int64_t dd = (int64_t)dx * dx + (int64_t)dy * dy;
+            if (dd > rmax2 || dd == 0) continue;
+
+            // 距離を求める
+            int64_t d = std::sqrt(dd);
+
+            // 相互作用は非対称なので正逆それぞれ求める必要がある
+            interact_t *pqinteract = pinteract + q->species;
+            
+            int64_t accelp = calcAccel(world, pqinteract, d) / d;
+            p->vx += ( accelp * dx ) >> 32;
+            p->vy += ( accelp * dy ) >> 32;
+
+            int64_t accelq = calcAccel(world, pqinteract + world->nspecies, d) / d;
+            q->vx -= ( accelq * dx ) >> 32;
+            q->vy -= ( accelq * dy ) >> 32;
+        }
+    }
+}
+
+// 粒子間の相互作用を求め vx, vy を更新する
+void EMSCRIPTEN_KEEPALIVE interactAdjucentParticles(
+        world_t *world,
+        interact_t *interact,
         particle_t *particles,
         int32_t *indices,
         int32_t n) {
@@ -103,8 +146,8 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
             p->vy += ( accelp * dy ) >> 32;
 
             int64_t accelq = calcAccel(world, pqinteract + world->nspecies, d) / d;
-            p->vx -= ( accelq * dx ) >> 32;
-            p->vy -= ( accelq * dy ) >> 32;
+            q->vx -= ( accelq * dx ) >> 32;
+            q->vy -= ( accelq * dy ) >> 32;
         }
     }
 }
