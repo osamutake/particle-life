@@ -10,6 +10,7 @@
 
 import { PLInteractionMatrix } from './pl-interaction-matrix.js'
 import { PLParticles } from './pl-particles.js'
+import { PLParticleSorter } from './pl-particle-sorter.js'
 
 export class ParticleLife {
   constructor(options = {}, rand) {
@@ -27,6 +28,7 @@ export class ParticleLife {
 
     this.interaction = new PLInteractionMatrix(options);
     this.particles = new PLParticles(this.nparticles);
+    this.particleSorter = new PLParticleSorter(this.particles);
 
     // C++ 用の構造体
     this.mem = wasm.i32.alloc(8); // 7 で良いけど切りが良いので
@@ -57,8 +59,9 @@ export class ParticleLife {
   
   // 粒子同士の相互作用を計算して vx, vy を更新する
   interactParticles() {
+    this.particleSorter.sort();
     wasm.interactParticles(
-        this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr);
+        this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, this.particleSorter.mem.ptr);
   }
   
   // 斥力効果を及ぼす

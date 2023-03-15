@@ -10,7 +10,7 @@
 export class PLParticles {
 
   constructor(nparticles) {
-    this.n = nparticles;
+    this.n = Math.floor(nparticles);
     this.mem  = wasm.i32.alloc(6 * nparticles);
   }
 
