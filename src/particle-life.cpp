@@ -67,66 +67,44 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
         world_t *world,
         interact_t *interact,
         particle_t *particles,
-        uint16_t *order) {
+        int32_t *indices,
+        int32_t n) {
 
     int32_t rmax = world->rmax;
     int64_t rmax2 = (int64_t)world->rmax * world->rmax;
 
-    // x 座標の近い粒子ペアのみに対して相互作用を検討する
-    particle_t *pp, *qp;
-    uint16_t *p, *q, *guard, *qguard;
-    int32_t px, py, dx, adx, dy, ady;
-    guard = order + world->nparticles;
-    qguard = order + 1;
-    for(p = order; p < guard; p++) {
-        pp = particles + *p;
-        interact_t *pinteract = interact + 2 * world->nspecies * pp->species;
-        px = pp->x;
-        py = pp->y;
+    int32_t *guard = indices + n - 1;
+    for(int32_t *pi = indices; pi < guard; pi++) {
+        particle_t *p = particles + *pi;
+        interact_t *pinteract = interact + 2 * world->nspecies * p->species;
+        int32_t px = p->x;
+        int32_t py = p->y;
         
-        if(qguard == p) {
-            qguard = p + 1;
-            if(qguard == guard) qguard = order;
-        }
-        for(; qguard != p;) {
-            dx = (particles + *qguard)->x - px;
-            if( dx > rmax || dx < 0 )
-                break;
-            qguard = qguard + 1;
-            if(qguard == guard) qguard = order;
-        }
+        for(int32_t *qi = pi + 1; qi <= guard; qi++) {
+            particle_t *q = particles + *qi;
 
-        q = p + 1;
-        if(q == guard) q = order;
-        for(; q != qguard;) {
-            qp = particles + *q;
+            int32_t dx = q->x - px;
+            if(std::abs(dx) > rmax) continue;
 
-            dy = qp->y - py;
-            if(std::abs(dy) <= rmax) {
+            int32_t dy = q->y - py;
+            if(std::abs(dy) > rmax) continue;
 
-                dx = qp->x - px;
-                int64_t dd = (int64_t)dx * dx + (int64_t)dy * dy;
-                if (dd <= rmax2 && dd != 0) {
+            int64_t dd = (int64_t)dx * dx + (int64_t)dy * dy;
+            if (dd > rmax2 || dd == 0) continue;
 
-                    // 距離を求める
-                    int64_t d = std::sqrt(dd);
+            // 距離を求める
+            int64_t d = std::sqrt(dd);
 
-                    // 相互作用は非対称なので正逆それぞれ求める必要がある
-                    
-                    interact_t *pqinteract = pinteract + qp->species;
-                    
-                    int64_t accelp = calcAccel(world, pqinteract, d) / d;
-                    pp->vx += ( accelp * dx ) >> 32;
-                    pp->vy += ( accelp * dy ) >> 32;
-
-                    int64_t accelq = calcAccel(world, pqinteract + world->nspecies, d) / d;
-                    qp->vx -= ( accelq * dx ) >> 32;
-                    qp->vy -= ( accelq * dy ) >> 32;
-                }
-            }
+            // 相互作用は非対称なので正逆それぞれ求める必要がある
+            interact_t *pqinteract = pinteract + q->species;
             
-            q++;
-            if(q == guard) q = order;
+            int64_t accelp = calcAccel(world, pqinteract, d) / d;
+            p->vx += ( accelp * dx ) >> 32;
+            p->vy += ( accelp * dy ) >> 32;
+
+            int64_t accelq = calcAccel(world, pqinteract + world->nspecies, d) / d;
+            p->vx -= ( accelq * dx ) >> 32;
+            p->vy -= ( accelq * dy ) >> 32;
         }
     }
 }
@@ -153,104 +131,37 @@ void EMSCRIPTEN_KEEPALIVE moveParticles(
     }
 };
 
-void EMSCRIPTEN_KEEPALIVE sortParticles1(
-    int32_t n, uint16_t *order, particle_t *particles) {
-
-    int i = 0, j;
-    uint32_t oix, poix;    
-    poix = particles[order[0]].x;
-    for(i = 1; i < n; i++) {
-        oix = particles[order[i]].x;
-        if(poix <= oix) {
-            poix = oix;
-            continue;
-        }
-
-        uint16_t oi = order[i];
-        for(j = i - 1; ; j--) {
-            order[j+1] = order[j];
-            if(j == 0) break;
-            uint32_t ojx = particles[order[j-1]].x;
-            if(ojx <= oix) break;
-        }
-        order[j] = oi;
-    }
-}
-
-void sortParticlesSub3(
-    int32_t l, int32_t r, uint16_t *order, particle_t *particles) {
-
-    int i = l, j;
-    uint32_t oix, poix;    
-    poix = particles[order[0]].x;
-    for(i++; i <= r; i++) {
-        oix = particles[order[i]].x;
-        if(poix <= oix) {
-            poix = oix;
-            continue;
-        }
-
-        uint16_t oi = order[i];
-        for(j = i - 1; ; j--) {
-            order[j+1] = order[j];
-            if(j == l) break;
-            uint32_t ojx = particles[order[j-1]].x;
-            if(ojx <= oix) break;
-        }
-        order[j] = oi;
-    }
-}
-
-void sortParticlesSub2(
-    uint32_t l, uint32_t r, uint16_t *order, particle_t *particles
-){
-    for(uint32_t i = l; i < r; i++) {
-        uint16_t mino = order[i];
-        int32_t  minx = particles[mino].x;
-        uint32_t mini = i;
-        for(uint32_t j = l + 1; j <= r; j++) {
-            if(particles[order[j]].x < minx) {
-                minx = particles[order[j]].x;
-                mino = order[j];
-                mini = j;
-            }
-        }
-        order[mini] = order[i];
-        order[i] = mino;
-    }
-}
-
-void sortParticlesSub(
-    int32_t l, int32_t r, uint16_t *order, particle_t *particles
-){
-    if(r - l < 100) {
-        sortParticlesSub3(l, r, order, particles);
-        return;
-    }
-    
-    int32_t  midx = particles[order[(r + l) >> 1]].x;
-    int32_t i = l, j = r;
-    while(1) {
-        while(particles[order[i]].x < midx)
-            i++;
-        while(midx < particles[order[j]].x)
-            j--;
-        if(i >= j) break;
-
-        uint16_t t = order[i];
-        order[i] = order[j];
-        order[j] = t;
-        i++;
-        j--;
-    }
-    if (l < i - 1) sortParticlesSub(l, i - 1, order, particles);
-    if (j + 1 < r) sortParticlesSub(j + 1, r, order, particles);
-}
-
-void EMSCRIPTEN_KEEPALIVE sortParticles(
-    int32_t n, uint16_t *order, particle_t *particles
+void EMSCRIPTEN_KEEPALIVE fillParticleGrid(
+    int32_t n, int32_t division, particle_t *particles, uint32_t *gridMem
 ) {
-    sortParticlesSub(0, n - 1, order, particles);
+    int32_t shiftx = 8 - division * 2;
+    uint32_t maskx  = (((uint32_t)0xffffffff) >> shiftx) & (0xff000000 << division);
+    int32_t shifty = 8 - division;
+    uint32_t masky  = (((uint32_t)0xffffffff) >> shifty) & 0xff000000;
+    
+    for(int i = 0; i < n; i++){
+        gridMem[i] = i | ((particles[i].x >> shiftx) & maskx)
+                       | ((particles[i].y >> shifty) & masky);
+    }
+}
+
+void EMSCRIPTEN_KEEPALIVE separateParticleGrid(
+    int32_t n, int32_t division, uint32_t *gridMem, int32_t *indices
+) {
+    uint32_t *pm = gridMem;
+    uint32_t last = 0, now;
+    indices[0] = 0;
+    int i;
+    for(i = 0; i < n; i++, pm++){
+        now = *pm >> 24;
+        if(last != now) {
+            for(int j = last + 1; j <= now; j++)
+                indices[j] = i;
+            last = now;
+        }
+    }
+    for(int j = last + 1; j <= (1 << (2*division)); j++)
+        indices[j] = i;
 }
 
 #ifdef __cplusplus

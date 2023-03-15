@@ -4,7 +4,8 @@ import { PLParticles } from '../src/pl-particles.js'
 describe("PLParticles", function () {
 
   beforeAll(async function() {
-    window.wasm = await Util.loadWasm('/__spec__/spec/assets-generated/particle-life.wasm');
+    if(!window.wasm)
+      window.wasm = await Util.loadWasm('/__spec__/spec/assets-generated/particle-life.wasm');
   });
 
   it("can store/restore particle informations", function() {

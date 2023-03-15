@@ -117,3 +117,8 @@ export function createProxy(obj, updateFunc) {
   }
   return proxy;
 }
+
+export function int2hex(i) {
+  return ("000"+(((i|0) >>> 16)&0xffff).toString(16)).slice(-4) +
+         ("000"+(((i|0)       )&0xffff).toString(16)).slice(-4) ;
+}
