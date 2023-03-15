@@ -3,3 +3,4 @@
 /obj/*.js
 *.BAK
 *~
+/test/coverage
