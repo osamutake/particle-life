@@ -106,7 +106,7 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
 }
 
 // 粒子間の相互作用を求め vx, vy を更新する
-void EMSCRIPTEN_KEEPALIVE interactAdjucentParticles(
+void EMSCRIPTEN_KEEPALIVE interactSameCellParticles(
         world_t *world,
         interact_t *interact,
         particle_t *particles,
@@ -124,6 +124,55 @@ void EMSCRIPTEN_KEEPALIVE interactAdjucentParticles(
         int32_t py = p->y;
         
         for(int32_t *qi = pi + 1; qi <= guard; qi++) {
+            particle_t *q = particles + *qi;
+
+            int32_t dx = q->x - px;
+            if(std::abs(dx) > rmax) continue;
+
+            int32_t dy = q->y - py;
+            if(std::abs(dy) > rmax) continue;
+
+            int64_t dd = (int64_t)dx * dx + (int64_t)dy * dy;
+            if (dd > rmax2 || dd == 0) continue;
+
+            // 距離を求める
+            int64_t d = std::sqrt(dd);
+
+            // 相互作用は非対称なので正逆それぞれ求める必要がある
+            interact_t *pqinteract = pinteract + q->species;
+            
+            int64_t accelp = calcAccel(world, pqinteract, d) / d;
+            p->vx += ( accelp * dx ) >> 32;
+            p->vy += ( accelp * dy ) >> 32;
+
+            int64_t accelq = calcAccel(world, pqinteract + world->nspecies, d) / d;
+            q->vx -= ( accelq * dx ) >> 32;
+            q->vy -= ( accelq * dy ) >> 32;
+        }
+    }
+}
+
+// 粒子間の相互作用を求め vx, vy を更新する
+void EMSCRIPTEN_KEEPALIVE interactAdjacentCellParticles(
+        world_t *world,
+        interact_t *interact,
+        particle_t *particles,
+        int32_t *pindices, int32_t pn,
+        int32_t *qindices, int32_t qn
+    ) {
+
+    int32_t rmax = world->rmax;
+    int64_t rmax2 = (int64_t)world->rmax * world->rmax;
+
+    int32_t *pguard = pindices + pn;
+    int32_t *qguard = qindices + qn;
+    for(int32_t *pi = pindices; pi < pguard; pi++) {
+        particle_t *p = particles + *pi;
+        interact_t *pinteract = interact + 2 * world->nspecies * p->species;
+        int32_t px = p->x;
+        int32_t py = p->y;
+        
+        for(int32_t *qi = qindices; qi < qguard; qi++) {
             particle_t *q = particles + *qi;
 
             int32_t dx = q->x - px;
@@ -197,6 +246,7 @@ void EMSCRIPTEN_KEEPALIVE separateParticleGrid(
     int i;
     for(i = 0; i < n; i++, pm++){
         now = *pm >> 24;
+        *pm = *pm & 0x00ffffff;
         if(last != now) {
             for(int j = last + 1; j <= now; j++)
                 indices[j] = i;

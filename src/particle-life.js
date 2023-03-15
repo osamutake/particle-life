@@ -32,7 +32,7 @@ export class ParticleLife {
     let division;
     for(division = 0; 1.0/(1 << division) > options.rmax * 2; division++)
       ;
-    division-=2;
+    division--;
     if(division >= 2) 
       this.grid = new PLParticleGrid(this.particles, division);
 
@@ -68,12 +68,25 @@ export class ParticleLife {
   interactParticles() {
     if(this.grid) {
       this.grid.update();
-      const ngrid = 2**this.grid.division;
+      const ngrid = 2 ** this.grid.division;
       for(let i = 0; i < ngrid; i++) {
         for(let j = 0; j < ngrid; j++) {
-          wasm.interactAdjucentParticles(
+          let cell_ij = this.grid.cell(i, j);
+          wasm.interactSameCellParticles(
             this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
-            this.grid.work.ptr, this.grid.adjacent(i, j));
+            ...cell_ij);
+          wasm.interactAdjacentCellParticles(
+            this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
+            ...cell_ij, ...this.grid.cell(i, j+1));
+          wasm.interactAdjacentCellParticles(
+            this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
+            ...cell_ij, ...this.grid.cell(i+1, j-1));
+          wasm.interactAdjacentCellParticles(
+            this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
+            ...cell_ij, ...this.grid.cell(i+1, j));
+          wasm.interactAdjacentCellParticles(
+            this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr, 
+            ...cell_ij, ...this.grid.cell(i+1, j+1));
         }
       }
     } else {
