@@ -4,3 +4,4 @@
 *.BAK
 *~
 /test/coverage
+/spec/assets-generated
