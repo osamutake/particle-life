@@ -123,6 +123,7 @@ async function main() {
       controls.update();
     }
     
+    util.destruct(world);
     world = createWorld(controls.state);
     int_editor.world = world;
     int_editor.colorFunc = (x)=> colorFunc(x);

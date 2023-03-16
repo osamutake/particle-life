@@ -1,17 +1,29 @@
-// ****************************************
-/// 粒子の配列
-//    typedef struct {
-//        int32_t species, dummy;
-//        int32_t x, y;
-//        int32_t vx, vy;
-//    } particle_t;
-// ****************************************
+/****************************************
+
+粒子の配列 + ワーキングメモリ を管理
+
+struct {
+    int32_t species, dummy;
+    int32_t x, y;
+    int32_t vx, vy;
+} particles[n];       // int32_t * 6  * nparticles
+
+typedef struct {
+    particle_t *p;
+    int16_t x;
+    int16_t row;
+} index[n];
+
+index_t grid[nrow * ncol]
+
+****************************************/
 
 export class PLParticles {
 
   constructor(nparticles) {
     this.n = Math.floor(nparticles);
-    this.mem  = wasm.i32.alloc(6 * nparticles);
+    
+    this.mem  = wasm.i32.alloc((6 + 2 + 1) * nparticles);
   }
 
   destructor() {
