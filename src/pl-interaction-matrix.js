@@ -15,7 +15,8 @@ export class PLInteractionMatrix {
         nspecies: 30,
         rth1: 0.05,
         rth2: 0.1,
-        rmax: 0.2
+        rmax: 0.2,
+        step: 1.0
     });
 
     // ３つの値を 粒子種数 x 粒子種数 個 格納する
@@ -41,9 +42,9 @@ export class PLInteractionMatrix {
 
       // 整数演算用に事前スケールしておく
       const n = this.nspecies;
-      const aa = a /  this.rth1              * 2**32;
-      const bb = b / (this.rth2 - this.rth1) * 2**32;
-      const cc = b / (this.rmax - this.rth2) * 2**32;
+      const aa = this.step * a /  this.rth1              * 2**32;
+      const bb = this.step * b / (this.rth2 - this.rth1) * 2**32;
+      const cc = this.step * b / (this.rmax - this.rth2) * 2**32;
       this.mem[3 * (i * n * 2 + j) + 0] = aa;       // forward
       this.mem[3 * (i * n * 2 + j) + 1] = bb;       // forward
       this.mem[3 * (i * n * 2 + j) + 2] = cc;       // forward
@@ -57,8 +58,8 @@ export class PLInteractionMatrix {
   get(i, j) {
     const n = this.nspecies;
     return [          // 整数演算用スケールを戻す
-      this.mem[3 * (i * n * 2 + j) + 0] *  this.rth1              / 2**32, //  a
-      this.mem[3 * (i * n * 2 + j) + 1] * (this.rth2 - this.rth1) / 2**32  //  b
+      this.mem[3 * (i * n * 2 + j) + 0] *  this.rth1              / 2**32 / this.step, //  a
+      this.mem[3 * (i * n * 2 + j) + 1] * (this.rth2 - this.rth1) / 2**32 / this.step  //  b
     ];
   }
 

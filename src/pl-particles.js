@@ -24,6 +24,7 @@ export class PLParticles {
     this.n = Math.floor(nparticles);
     
     this.mem  = wasm.i32.alloc((6 + 2 + 1) * nparticles);
+    this.memVertices = new Int16Array(5 * nparticles);
   }
 
   destructor() {
@@ -64,4 +65,21 @@ export class PLParticles {
         this.mem[6 * i + 3] / 2**32   // y
       );
   }
+  
+  vertices(palette) {
+    const v = this.memVertices;
+    const n = this.n;
+    const mem = this.mem;
+    for(let i = 0; i < n; i++) {
+      v[5 * i    ] = mem[6 * i + 2] >>> 16;
+      v[5 * i + 1] = - (mem[6 * i + 3] >>> 16);
+
+      let c = palette[mem[6 * i + 0]];
+      v[5 * i + 2] = c[0] * 127;
+      v[5 * i + 3] = c[1] * 127;
+      v[5 * i + 4] = c[2] * 127;
+    }
+    return v;
+  }
+
 }

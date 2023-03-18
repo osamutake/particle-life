@@ -94,14 +94,61 @@ inline int64_t calcAccel(interact_t *interact, int32_t d)
 
 inline void interactParticleCore(
     particle_t *p, particle_t *q, 
-    int64_t dx, int64_t dy,
-    interact_t *pinteract) 
+    int32_t px, int32_t py,
+    interact_t *pinteract, int dx_check) 
 {
-    int64_t dd = dx * dx + dy * dy;
+    int32_t dx, dy, adx, ady;
+    
+    if(dx_check) {
+        dx = q->x - px;
+//        adx = std::abs(dx);
+//        if(adx > world.rmax) return;  // チェックしない方が速い
+
+        dy = q->y - py;
+//        ady = std::abs(dy);
+//        if(ady > world.rmax) return;
+    } else {
+        dy = q->y - py;
+//        ady = std::abs(dy);
+//        if(ady > world.rmax) return;
+
+        dx = q->x - px;
+//        adx = std::abs(dx);
+    }
+
+    int64_t dd = (int64_t)dx * dx + (int64_t)dy * dy;
     if (dd > rmax2 || dd == 0) return;
 
     // 距離を求める
-    int32_t d = std::sqrt(dd);
+    int32_t d = std::sqrt((float)dd);
+
+/*
+    int32_t dd = (dx >> 16) * (dx >> 16) + (dy >> 16) * (dy >> 16);
+    if (dd > (rmax2 >> 32) || dd == 0) return;
+
+    // 距離を求める
+    int32_t d = (int32_t)std::sqrt((float)dd) << 16;
+*/
+
+/*
+    int32_t ma, mi;
+    if(adx > ady){
+        ma = ((int16_t*)&adx)[1]; mi = ((int16_t*)&ady)[1];
+    } else {
+        mi = ((int16_t*)&adx)[1]; ma = ((int16_t*)&ady)[1];
+    }
+    if (ma==0) return; // これより後ろで >> すると div by 0 が出うる
+
+//    これは速いのだけれど誤差が気になる
+//    int32_t d = ma + (mi >> 3) * 3;
+
+//    ma >>= 16; mi >>= 16;
+
+    int32_t d = 2 * ma < 5 * mi ? 864 * 64 * ma + 569 * 64 * mi : 
+                                 1016 * 64 * ma + 190 * 64 * mi ;
+
+    if (d > world.rmax) return;
+*/
 
     // 相互作用は非対称なので正逆それぞれ求める必要がある
     interact_t *pqinteract = pinteract + q->species;
@@ -127,7 +174,7 @@ inline index_t *increaseIndex(index_t *p, index_t *index, index_t *guard)
 
 // 何も考えないやつ
 
-void interactWholeWorld(
+void EMSCRIPTEN_KEEPALIVE interactWholeWorld(
     interact_t *interact, particle_t *particles, particle_t *guard) {
 
     for(particle_t *p = particles; p < guard; p++) {
@@ -137,14 +184,7 @@ void interactWholeWorld(
         
         // 同じペアを２度数えないようにする
         for(particle_t *q = p + 1; q < guard; q++) {
-
-            int32_t dx = q->x - px;
-            if(std::abs(dx) > world.rmax) continue;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, q, px, py, pinteract, 1);
         }
     }
 }
@@ -167,15 +207,7 @@ void interactIntraCellPeriodic(
         
         // 同じペアを２度数えないようにする
         for(index_t *qi = pi + 1; qi < guard; qi++) {
-            particle_t *q = qi->p;
-
-            int32_t dx = q->x - px;
-            if(std::abs(dx) > world.rmax) continue;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, qi->p, px, py, pinteract, 1);
         }
     }
 }
@@ -200,15 +232,7 @@ void interactSameColumnPeriodic(
         int32_t py = p->y;
         
         for(index_t *qi = qindex; qi < qguard; qi++) {
-            particle_t *q = qi->p;
-
-            int32_t dx = q->x - px;
-            if(std::abs(dx) > world.rmax) continue;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, qi->p, px, py, pinteract, 1);
         }
     }
 }
@@ -235,14 +259,7 @@ void interactIntraCell(interact_t *interact, uint16_t xmax, index_t **cell)
         int32_t py = p->y;
 
         for(index_t *qi = pi + 1; qi < qguard; qi++) {
-            particle_t *q = qi->p;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            int32_t dx = q->x - px;
-            
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, qi->p, px, py, pinteract, 0);
         }
     }
 }
@@ -282,14 +299,7 @@ void interactSameColumn(
         int32_t py = p->y;
 
         for(index_t *qi = qs; qi < qe; qi++) {
-            particle_t *q = qi->p;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            int32_t dx = q->x - px;
-            
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, qi->p, px, py, pinteract, 0);
         }
     }
 }
@@ -324,14 +334,7 @@ void interactAdjacentColumn(
         int32_t py = p->y;
 
         for(index_t *qi = qindex; qi < qe; qi++) {
-            particle_t *q = qi->p;
-
-            int32_t dy = q->y - py;
-            if(std::abs(dy) > world.rmax) continue;
-
-            int32_t dx = q->x - px;
-            
-            interactParticleCore(p, q, dx, dy, pinteract);
+            interactParticleCore(p, qi->p, px, py, pinteract, 0);
         }
     }
 }
@@ -362,6 +365,7 @@ void sortParticleindex(int64_t *l, int64_t *r) {
         return;
     }
     
+    // 上位 32bit だけを比較する
     uint32_t pivot = ((uint32_t*)(l + (r - l)/2))[1];
     int64_t *i = l, *j = r;
     int64_t iv, jv;
@@ -374,6 +378,21 @@ void sortParticleindex(int64_t *l, int64_t *r) {
         *(i++) = jv;
         *(j--) = iv;
     }
+    
+    /*
+    uint64_t pivot = l[ (r - l)/2];
+    int64_t *i = l, *j = r;
+    int64_t iv, jv;
+    while(1) {
+        while((iv = *i) < pivot)
+            i++;
+        while(pivot < (jv = *j))
+            j--;
+        if(i >= j) break;
+        *(i++) = jv;
+        *(j--) = iv;
+    }
+    */
     if (l < i - 1) sortParticleindex(l, i - 1);
     if (j + 1 < r) sortParticleindex(j + 1, r);
 }
@@ -387,7 +406,7 @@ void setupXMax(int16_t *xmax, int nrow, int row_div)
         double dx = std::sqrt( rmax * rmax - 
             ((i - 1) * row_height) * ((i - 1) * row_height) );
 
-        // 誤差の影響を避けるため 1 だけ狭めておく
+        // 誤差の影響を避けるため 1 だけ広げておく
         xmax[i] = (int16_t)(dx * 65536) + 1;
     }
     xmax[0] = xmax[1];

@@ -68,6 +68,7 @@ export async function loadWasm(wasmFile) {
           wasm.malloc(_Class.BYTES_PER_ELEMENT * n), n)
 
       mem.ptr = mem.byteOffset; // シュガー
+      if(!mem.ptr) throw new Error('out of memory');
 
       // ガーベージコレクションされるときに free するよう登録
       finalizer.register(mem, mem.ptr);

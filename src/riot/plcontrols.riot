@@ -97,17 +97,32 @@
         </p>
       </div>
     </div>
+    <div class="column is-narrow field">
+      <label for="screen" class="label">画面</label>
+      <div class="select">
+        <select id="screen" value={state.screen} onchange={ editorChanged }>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+        </select>
+      </div>
+    </div>
   </div>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="interact_seed" class="label">相互作用セット</label>
-        <div class="select">
-          <select id="intset" value={state.intset} onchange={ editorChanged }>
-            <option value="">デフォルト
-            <option value="A">多粒子種補正A</option>
-            <option value="B">多粒子種補正B</option>
-          </select>
-        </div>
+      <label for="intset" class="label">相互作用セット</label>
+      <div class="select">
+        <select id="intset" value={state.intset} onchange={ editorChanged }>
+          <option value="">デフォルト</option>
+          <option value="A">多粒子種補正A</option>
+          <option value="B">多粒子種補正B</option>
+        </select>
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="step" class="label">計算ステップ</label>
+      <div class="control">
+        <input class="input" id="step" type="text"  value={state.step} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -144,8 +159,10 @@
           nlattice: 30,
           scale: 1,
           tail: 0,
-          maxfps: 20,
+          maxfps: 60,
+          step: 1,
           intset: "",
+          screen: "S",
         };
         this.update();
       },
@@ -168,8 +185,15 @@
 
       editorChanged(e) {
         let {id, value} = e.target;
-        this.update(Object.fromEntries([[id, value]]));
-        if(["nspecies", "nlattice", "scale", "intset"].includes(e.target.id))
+        if(e.target.id == "scale") {
+          this.update({
+            scale: value,
+            step: Math.round(this.state.step * this.state.scale / value * 1000)/1000
+          });
+        } else {
+          this.update(Object.fromEntries([[id, value]]));
+        }
+        if(["nspecies", "nlattice", "scale", "intset", "step"].includes(e.target.id))
           this.dispatchEvent("restart", this.state);
       },
 
@@ -195,6 +219,7 @@
           tail: ['required', 'numeric', 'min:0'],
           maxfps: ['required', 'numeric', 'between:0,1000'],
           intset: ['required', 'regex:/^[A-Z]?$/'],
+          screen: ['required'],
         };
 
         state.validation = new Validator(state, rule);

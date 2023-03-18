@@ -7,6 +7,7 @@
     width
     height
   }
+
   state = {
     repelX: 0,  // 外から参照されることを想定
     repelY: 0,  // 外から参照されることを想定
@@ -45,15 +46,15 @@
           tail: 0
         }
 
+        this.initializeRequired = true;
+
         let canvas = this.$('canvas');
 
-        // スクロール処理に使うワーキングキャンバスを作成
-//        this.workingCanvas = canvas.cloneNode();
+        // ワーキングキャンバスを作成
+        this.buffer = canvas.cloneNode();   // WebGL で使う
+        this.buffer2 = canvas.cloneNode();  // 尾を付ける処理の前
+        this.buffer3 = canvas.cloneNode();  // スクロール処理の前
 
-//        let g = canvas.getContext('2d');
-//        g.scale(canvas.width, canvas.height);
-//        g.translate(0.5, 0.5);
-        
         // マウス座標から x, y 座標に直す
         const mouse2xy = (mouseX, mouseY) => {
           return [
@@ -84,11 +85,11 @@
               if(!mouseDoubleDown) {
                 // スクロールする
                 const [dx, dy] = [newX - oldX, newY - oldY];
-                this.scroll(dx, dy);
                 this.state.offsetX -= dx / canvas.width; 
                 this.state.offsetX -= Math.round(this.state.offsetX);
                 this.state.offsetY -= dy / canvas.height; 
                 this.state.offsetY -= Math.round(this.state.offsetY);
+                this.render();
               } else {
                 [this.state.repelX, this.state.repelY] = mouse2xy(newX, newY)
               }
@@ -102,53 +103,36 @@
 
       },
 
-      // 画面をスクロールする
-      // TODO: そもそも裏で普通に書いておいて offset でずらしたところに
-      //       貼り付ける方が良い気がしてきた
-      scroll(dx, dy) {
-        let canvas = this.$('canvas');
-        let wcanvas = this.workingCanvas;
-        wcanvas.getContext('2d').drawImage(canvas, 0, 0); // そのままコピーする
-
-        const g = canvas.getContext('2d');
-        g.setTransform(1,0,0,1,0,0);
-        g.globalAlpha = 1;
-        
-        const [w, h] = [canvas.width, canvas.height];
-        const region = (sx, sy) => {  // ４象限を計算する
-          const x1 = (w - dx) % w; const y1 = (h - dy) % h; 
-          const x2 = (dx + w) % w; const y2 = (dy + h) % h; 
-          return [
-            Math.min(x1, sx ? 0 : w),  Math.min(y1, sy ? 0 : h),
-            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)), 
-            Math.min(x2, sx ? w : 0),  Math.min(y2, sy ? h : 0),
-            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)) ];
+      onUpdated(props, state) {
+        const screens = {
+          S: 600, M: 900, L: 1200, XL: 1500
         }
 
-        g.drawImage(wcanvas, ...region(0, 0));
-        g.drawImage(wcanvas, ...region(1, 0));
-        g.drawImage(wcanvas, ...region(0, 1));
-        g.drawImage(wcanvas, ...region(1, 1));
+        let size = screens[this.state.screen]
+        let canvas = this.$('canvas');
+        if(canvas && (canvas.width != size)) {
+          [canvas.width, canvas.height] =
+          [this.buffer.width, this.buffer.height] =
+          [this.buffer2.width, this.buffer2.height] =
+          [this.buffer3.width, this.buffer3.height] = [size, size];
+          this.initializeRequired = true;
+        }
 
-        g.scale(canvas.width, canvas.height);
-        g.translate(0.5, 0.5);
+        this.render();
       },
 
-      // 描画する
-      render(world, colorFunc) {
-        if(!world || !colorFunc) return;
 
-        let canvas = this.$('canvas');
+      // WebGL が使えない場合の通常の描画
 
-/*
-        g = canvas.getContext('2d');
+      render_2d(g, world, colorFunc) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+
+        let canvas = this.$("canvas");
+        g.scale(canvas.width, canvas.height);
+        g.translate(0.5, 0.5);
 
         // 背景塗りつぶし
         let style = '#000000';  // 真っ黒
-        if( this.state.tail > 0 ) {  
-          // 尾を引かせるときは alpha を指定する
-          style += ('0' + ((255 / (1.0 + 1.0 * this.state.tail)) | 0).toString(16)).substr(-2);
-        }
         g.fillStyle = style;
         g.fillRect(-0.5, -0.5, 1, 1);
         
@@ -158,94 +142,85 @@
 
         // 粒子の描画
         const r = world.particle_radius;
-        const ox = this.state.offsetX;
-        const oy = this.state.offsetY;
         world.particles.forEach( (sp, x, y) => {
           g.beginPath();
           g.fillStyle = palette[sp];
-          x -= ox; x -= Math.round(x);
-          y -= oy; y -= Math.round(y);
           g.arc(x, y, r, 0, 2 * Math.PI);
           g.fill();
         });
-*/
+      },
 
-        gl = canvas.getContext('webgl'); 
 
-        if(!this.vertices || this.vertices.length != world.nparticles * 5) {
+      // WebGL の初期化
 
-          /*=========================Shaders========================*/
+      initialize_gl(gl) {
+        /*=========================Shaders========================*/
 
-          // vertex shader source code
-          var vshaderSrc = `
-            attribute vec4 a_position;
-            attribute vec4 a_color;
-            varying vec4 v_color;
-            void main(void) {
-              gl_Position = a_position;
-              gl_PointSize = 2.5;
-              v_color = a_color;
-            }
-          `;
+        // vertex shader source code
+        var vshaderSrc = `
+          attribute vec4 a_position;
+          attribute vec4 a_color;
+          varying vec4 v_color;
+          void main(void) {
+            gl_Position = a_position;
+            gl_PointSize = 2.5;
+            v_color = a_color;
+          }
+        `;
 
-          // Create a vertex shader object
-          var vshader = gl.createShader(gl.VERTEX_SHADER);
-          gl.shaderSource(vshader, vshaderSrc);
-          gl.compileShader(vshader);
+        // Create a vertex shader object
+        var vshader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vshader, vshaderSrc);
+        gl.compileShader(vshader);
 
-          var fshaderSrc = `
-            precision mediump float;
-            varying vec4 v_color;
-            void main(void) {
-              gl_FragColor = v_color;
-            }
-          `;
+        var fshaderSrc = `
+          precision mediump float;
+          varying vec4 v_color;
+          void main(void) {
+            gl_FragColor = v_color;
+          }
+        `;
 
-          var fshader = gl.createShader(gl.FRAGMENT_SHADER);
-          gl.shaderSource(fshader, fshaderSrc);
-          gl.compileShader(fshader);
-           
-          var shaderProgram = gl.createProgram();
-          gl.attachShader(shaderProgram, vshader); 
-          gl.attachShader(shaderProgram, fshader);
-          gl.linkProgram(shaderProgram);
-          gl.useProgram(shaderProgram);
-          gl.program = shaderProgram;
+        var fshader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fshader, fshaderSrc);
+        gl.compileShader(fshader);
+         
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vshader); 
+        gl.attachShader(shaderProgram, fshader);
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
+        gl.program = shaderProgram;
 
-          // 一旦消去
-          gl.clearColor(0, 0, 0, 1);
-          gl.disable(gl.DEPTH_TEST);
-          gl.clear(gl.COLOR_BUFFER_BIT);
+        let vertex_buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
 
-          let vertex_buffer = gl.createBuffer();
-          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        /*======== Associating shaders to buffer objects ========*/
 
-          /*======== Associating shaders to buffer objects ========*/
+        let size = 2; // vertices.BYTES_PER_ELEMENT
 
-          let size = 2; // vertices.BYTES_PER_ELEMENT
+        let a_position = gl.getAttribLocation(gl.program, 'a_position');
+        gl.vertexAttribPointer(a_position, 2, gl.SHORT, true, size * 5, 0);
+        gl.enableVertexAttribArray(a_position);
 
-          let a_position = gl.getAttribLocation(gl.program, 'a_position');
-          gl.vertexAttribPointer(a_position, 2, gl.SHORT, true, size * 5, 0);
-          gl.enableVertexAttribArray(a_position);
+        let a_color = gl.getAttribLocation(gl.program, 'a_color');
+        gl.vertexAttribPointer(a_color, 3, gl.SHORT, true, size * 5, size * 2);
+        gl.enableVertexAttribArray(a_color);
 
-          let a_color = gl.getAttribLocation(gl.program, 'a_color');
-          gl.vertexAttribPointer(a_color, 3, gl.SHORT, true, size * 5, size * 2);
-          gl.enableVertexAttribArray(a_color);
+        // Set the view port
+        const canvas = this.$("canvas");
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      },
 
-          /*============= Drawing the primitive ===============*/
 
-          gl.disable(gl.DEPTH_TEST);
-          gl.clear(gl.COLOR_BUFFER_BIT);
+      // WebGL による描画
 
-          // Set the view port
-          gl.viewport(0, 0, canvas.width, canvas.height);
+      render_gl(gl, world, colorFunc) {
 
-          this.vertices = new Int16Array(5 * world.nparticles);
-        }
-          // 一旦消去
-          gl.disable(gl.DEPTH_TEST);
-          gl.clear(gl.COLOR_BUFFER_BIT);
-          gl.clearColor(0, 0, 0, 1);
+        // 一旦消去
+        gl.clearColor(0, 0, 0, 1);  // 背景色
+        gl.disable(gl.DEPTH_TEST);
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
         let palette = [...Array(world.nspecies)].map((_, i) => {
             const c = colorFunc(i/world.nspecies);
@@ -253,19 +228,94 @@
           }
         );
 
-        for(let i = 0; i < world.nparticles; i++) {
-          this.vertices[5 * i    ] = world.particles.mem[6 * i + 2] >>> 16;
-          this.vertices[5 * i + 1] = world.particles.mem[6 * i + 3] >>> 16;
+        gl.bufferData(gl.ARRAY_BUFFER, world.particles.vertices(palette), gl.DYNAMIC_DRAW);
+        gl.drawArrays(gl.POINTS, 0, world.nparticles);
+      },
 
-          let c = palette[world.particles.mem[6 * i + 0]];
-          this.vertices[5 * i + 2] = c[0] * 127;
-          this.vertices[5 * i + 3] = c[1] * 127;
-          this.vertices[5 * i + 4] = c[2] * 127;
+
+      // source を g のスクロール位置に描画する
+
+      drawImageWithOffset(g, source) {
+        const [w, h] = [source.width, source.height];
+        const [dx, dy] = [-this.state.offsetX * w, -this.state.offsetY * h]
+
+        const region = (sx, sy) => {  // ４象限を計算する
+          const x1 = (w - dx) % w; const y1 = (h - dy) % h; 
+          const x2 = (dx + w) % w; const y2 = (dy + h) % h; 
+          return [
+            Math.min(x1, sx ? 0 : w),  Math.min(y1, sy ? 0 : h),
+            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)), 
+            Math.min(x2, sx ? w : 0),  Math.min(y2, sy ? h : 0),
+            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)) ];
+        }
+        g.drawImage(source, ...region(0, 0));
+        g.drawImage(source, ...region(1, 0));
+        g.drawImage(source, ...region(0, 1));
+        g.drawImage(source, ...region(1, 1));
+      },
+
+      // 描画する
+      render() {
+
+        world = this.world && this.world();
+        colorFunc = this.colorFunc && this.colorFunc();
+        if(!world || !colorFunc) return;
+
+
+        // this.buffer2 に offset を無視した画像を作る
+
+        let gl = this.buffer.getContext('webgl'); 
+        let g2 = this.buffer2.getContext('2d');
+        if(!gl) {
+          // WebGL が使えなければ通常の描画
+          this.render_2d(g2, world, colorFunc);
+          this.initializeRequired = false;
+        } else {
+          if(this.initializeRequired) {
+            this.initialize_gl(gl);
+            this.initializeRequired = false;
+          }
+          this.render_gl(gl, world, colorFunc);
+          g2.drawImage(this.buffer, 0, 0);
         }
 
-        gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.DYNAMIC_DRAW);
+        const canvas = this.$("canvas");
+        const g = canvas.getContext('2d');
 
-        gl.drawArrays(gl.POINTS, 0, world.nparticles);
+        // 尾を引かせる処理
+        const g3 = this.buffer3.getContext('2d');
+
+        g3.globalAlpha = 1;
+        t = this.state.tail;
+        if(t > 50) {
+          this.tailCount = (this.tailCount || 0) + 50/t;
+          t = 50;
+        } else {
+          this.tailCount = 1;
+        }
+
+        if(this.tailCount >= 1) {
+          // 背景塗りつぶし
+          let style = '#000000';  // 真っ黒
+          if( t > 0 ) {  
+            // 尾を引かせるときは alpha を指定する
+            style += ('0' + ((255 / (1.0 + 1.0 * t)) | 0).toString(16)).substr(-2);
+          }
+          g3.fillStyle = style;
+          g3.globalCompositeOperation = "source-over"
+          g3.fillRect(0, 0, canvas.width, canvas.height);
+
+          g3.fillStyle = "#010101";
+          g3.globalCompositeOperation = "difference"
+          g3.fillRect(0, 0, canvas.width, canvas.height);
+
+          this.tailCount -= 1;
+        }
+
+        g3.globalCompositeOperation = "screen"
+        g3.drawImage(this.buffer2, 0, 0);
+
+        this.drawImageWithOffset(g, this.buffer3);
 
       }
     }

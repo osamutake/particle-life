@@ -208,10 +208,14 @@
               g.fillStyle = "#fff";
               g.fillRect(1.05 + j, 1.05 + i, 0.9, 0.9);
             }
-            g.fillStyle = this.colorScale.color((-b / 0.0005+1)/2);
-            g.fillRect(1.1 + j, 1.1 + i, 0.9, 0.9);
-            g.fillStyle = this.colorScale.color((-a / 0.0015+1)/2);
-            g.fillRect(1.1 + j, 1.1 + i, 0.5, 0.5);
+            if(!isNaN(b)){
+              g.fillStyle = this.colorScale.color((-b / 0.0005+1)/2);
+              g.fillRect(1.1 + j, 1.1 + i, 0.9, 0.9);
+            }
+            if(!isNaN(a)){
+              g.fillStyle = this.colorScale.color((-a / 0.0015+1)/2);
+              g.fillRect(1.1 + j, 1.1 + i, 0.5, 0.5);
+            }
           }
         }
       },

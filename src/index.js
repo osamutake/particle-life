@@ -26,15 +26,17 @@ async function main() {
   // コンポーネントを構成する
     
   let world;
+  let colorFunc = null;
   
   let display = riot.mount("particles-display")[0];
+  display.world = () => world;
+  display.colorFunc = () => colorFunc;
   
   let colorScaleEditor = riot.mount(
       "color-scale-editor", 
       {colorScaleList: colorScaleList}
   )[0];
   
-  let colorFunc = null;
   
   let int_editor = riot.mount("interaction-editor")[0];
   
@@ -50,7 +52,7 @@ async function main() {
   colorScaleEditor.addEventListener("update", e => {
     colorFunc = e.detail;
     int_editor.update();
-    display.render(world, colorFunc);
+    display.render();
   });
   colorScaleEditor.update();
   
@@ -62,22 +64,21 @@ async function main() {
     world.interactParticles();
     world.repelParticles(display.state.repelX, display.state.repelY);
     world.moveParticles();
-    display.render(world, colorFunc);
+    display.render();
     fps.innerText = `${String(renderer.fps).slice(0, 4)} fps`;
   }
   const renderer = new CanvasRenderer(display.$('canvas'), render, exportVid);
 
-  controls.addEventListener("update", (e) => {
-    display.state.tail = e.detail.tail;
-    renderer.maxFps = e.detail.maxfps;
-  });
-
-  controls.update();
-  
   const updateURL = (options) => {
     // URL を更新
-    let search = '?' + options.nspecies + "_" + options.nlattice;
+    let search = '?' + (options.screen != 'S' ? options.screen : '');
+    search += options.nspecies + "_" + options.nlattice;
     search += "_" + options.interact_seed + options.intset + "_" + options.world_seed;
+    if(options.step != 1) {
+      search += "_" + display.state.tail;
+      search += "_" + options.scale;
+      search += "_" + options.step;
+    } else
     if(options.scale != 1) {
       search += "_" + display.state.tail;
       search += "_" + options.scale;
@@ -85,6 +86,14 @@ async function main() {
     if(display.state.tail > 0) search += "_" + display.state.tail;
     history.replaceState({}, '', search);
   }
+
+  controls.addEventListener("update", (e) => {
+    if(display.state.screen != e.detail.screen) updateURL(e.detail);
+    display.update({tail: e.detail.tail, screen: e.detail.screen});
+    renderer.maxFps = e.detail.maxfps;
+  });
+
+  controls.update();
 
   const createWorld = (options) => {
     if(options.scale) {
@@ -129,6 +138,7 @@ async function main() {
     int_editor.colorFunc = (x)=> colorFunc(x);
     int_editor.update();
     renderer.start();
+    display.initializeRequired = true;
   }
   
   restart();
@@ -191,6 +201,15 @@ function parametersFromURL(state) {
   }
   if(options.length == 6) {
     [state.nspecies, state.nlattice, state.interact_seed, state.world_seed, state.tail, state.scale] = options;
+  }
+  if(options.length == 7) {
+    [state.nspecies, state.nlattice, state.interact_seed, state.world_seed, state.tail, state.scale, state.step] = options;
+  }
+  
+  let match = /^(S|M|L)(.+)/.exec(state.nspecies);
+  if(match) {
+    state.screen = match[1];
+    state.nspecies = match[2];
   }
 
   // 大文字のアルファベットは相互作用セットの指定
