@@ -171,13 +171,13 @@ async function main() {
   
   document.getElementById("show-editor").addEventListener("click", ()=> {
     const style = document.getElementById("world-editor").style;
-    if(style.visibility == "hidden") {
-      style.visibility = "visible";
+    if(style.display == "none") {
+      style.display = "block";
     } else {
-      style.visibility = "hidden";
+      style.display = "none";
     }
   });
-  document.getElementById("world-editor").style.visibility = "hidden";
+  document.getElementById("world-editor").style.display = "none";
 }
 
 window.addEventListener('load', () => {

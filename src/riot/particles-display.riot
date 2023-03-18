@@ -29,6 +29,7 @@
       canvas {
         touch-action: none;
         margin: 0px;
+        max-width: 90vw;
       }
     }
   </style>
@@ -58,8 +59,8 @@
         // マウス座標から x, y 座標に直す
         const mouse2xy = (mouseX, mouseY) => {
           return [
-            mouseX / canvas.width  - 0.5 + this.state.offsetX, 
-            mouseY / canvas.height - 0.5 + this.state.offsetY
+            mouseX / canvas.clientWidth  - 0.5 + this.state.offsetX, 
+            mouseY / canvas.clientHeight - 0.5 + this.state.offsetY
           ];
         };
           

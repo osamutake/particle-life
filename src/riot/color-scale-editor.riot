@@ -43,6 +43,11 @@
       --ctrl-width: 600px;
       display: inline-block;
       width: var(--ctrl-width);
+      max-width: 90vw !important;
+
+      > div {
+        max-width: 90vw;
+      }
 
       a.button {
         width: var(--ctrl-height);
@@ -96,8 +101,8 @@
             e.preventDefault()
 
             const [dx, dy] = [newX - oldX, newY - oldY]
-            this.state.scale /= 1 + dy / canvas.height
-            this.state.offset -= dx / canvas.width / this.state.scale / 2
+            this.state.scale /= 1 + dy / canvas.clientHeight
+            this.state.offset -= dx / canvas.clientWidth / this.state.scale / 2
             this.update()
           },
         }) 

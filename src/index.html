@@ -23,20 +23,19 @@
   <body>
   <section class="section">
     <div class="container">
-      <h1 class="title is-1">Particle Life</h1>
+      <h1 class="title is-3">Particle Life</h1>
 
       <p>粒子に命が宿る世界を覗き見るサイトです(?)</p>
       <br>
-      <div style="margin-bottom:4px">
-        <a class="button is-info" id="new-world">新しいワールドを生成</a>
-        <a class="button is-info" id="show-editor">ワールドエディタ表示/非表示</a>
-        <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
-      </div>
-
-      <div class="columns">
+      <div class="columns is-desktop">
         <div class="column is-narrow">
-        <particles-display width="1200" height="1200"></particles-display><br>
+        <particles-display width="600" height="600"></particles-display><br>
         <color-scale-editor width="600" height="40"></color-scale-editor>
+        <div style="margin-bottom:4px">
+          <a class="button is-info is-small" id="new-world">新しいワールドを生成</a>
+          <a class="button is-info is-small" onClick="navigator.clipboard.writeText(location.href)">URLをコピー</a>
+          <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
+        </div>
         </div>
         <div class="column is-narrow" id="world-editor">
           <interaction-editor width="600"></interaction-editor>
@@ -46,6 +45,7 @@
       <div class="columns">
         <plcontrols></plcontrols>
       </div>
+      <a class="button is-info is-small" id="show-editor">ワールドエディタを表示/非表示</a>
 
       <div id="video"></div>
 
