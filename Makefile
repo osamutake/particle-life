@@ -2,18 +2,21 @@ CC := ./emsdk/upstream/emscripten/emcc
 RIOT := ./node_modules/.bin/riot
 ESBUILD := ./node_modules/.bin/esbuild
 
-debug-build: dist/particle-life.wasm dist/particle-life.js dist/index.html
+debug-build: dist/particle-life.wasm dist/particle-life.js dist/index.html dist/recommendations.json
 
 .PHONY: test release-build clean
 
-test: dist/particle-life.wasm obj/riot_tags.js
+test: dist/particle-life.wasm obj/riot_tags.js dist/recommendations.json
 	mkdir -p spec/assets-generated
 	cp dist/particle-life.wasm spec/assets-generated/
 	cp obj/riot_tags.js spec/assets-generated/
 	npx jasmine-browser-runner serve
 
 dist/index.html: src/index.html
-	cp src/index.html dist/index.html
+	cp $< $@
+
+dist/recommendations.json: src/recommendations.json
+	cp $< $@
 
 dist/particle-life.wasm: src/particle-life.cpp
 	$(CC) -o dist/particle-life.wasm -g src/particle-life.cpp -s EXPORTED_FUNCTIONS=_malloc,_free  --no-entry -s STANDALONE_WASM --profiling
@@ -30,6 +33,8 @@ release-build:
 	$(CC) -o dist/particle-life.wasm -O3 src/particle-life.cpp -s EXPORTED_FUNCTIONS=_malloc,_free  --no-entry -s STANDALONE_WASM -sWASM_BIGINT -s TOTAL_MEMORY=128MB -flto
 	$(RIOT) src/riot/tags.js -o obj/riot_tags.js -c config/riot.config.js
 	$(ESBUILD) src/index.js --bundle --outfile=dist/particle-life.js --minify-whitespace --minify-whitespace
+	cp src/index.html dist/index.html
+	cp src/recommendations.json dist/recommendations.json
 
 clean:
 	-rm dist/particle-life.wasm dist/particle-life.js obj/* spec/assets-generated/*

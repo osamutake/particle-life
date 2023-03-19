@@ -57,7 +57,8 @@ async function main() {
   colorScaleEditor.update();
   
   const controls = riot.mount('plcontrols')[0];
-  parametersFromURL(controls.state)
+  controls.recommendations = await (await fetch('recommendations.json')).json();
+  controls.setParameters(location.search)
 
   const fps = document.getElementById('fps');
   const render = ()=> {
@@ -69,42 +70,24 @@ async function main() {
   }
   const renderer = new CanvasRenderer(display.$('canvas'), render, exportVid);
 
-  const updateURL = (options) => {
-    // URL を更新
-    let search = '?' + (options.screen != 'S' ? options.screen : '');
-    search += options.nspecies + "_" + options.nlattice;
-    search += "_" + options.interact_seed + options.intset + "_" + options.world_seed;
-    if(options.step != 1) {
-      search += "_" + display.state.tail;
-      search += "_" + options.scale;
-      search += "_" + options.step;
-    } else
-    if(options.scale != 1) {
-      search += "_" + display.state.tail;
-      search += "_" + options.scale;
-    } else
-    if(display.state.tail > 0) search += "_" + display.state.tail;
-    history.replaceState({}, '', search);
-  }
-
+  const updateURL = ()=> 
+    history.replaceState({}, '', controls.encodeParameters());
+  
   controls.addEventListener("update", (e) => {
-    if(display.state.screen != e.detail.screen) updateURL(e.detail);
+    if(display.state.screen != e.detail.screen) updateURL();
     display.update({tail: e.detail.tail, screen: e.detail.screen});
     renderer.maxFps = e.detail.maxfps;
   });
 
   controls.update();
 
-  const createWorld = (options) => {
-    if(options.scale) {
-      Object.assign(options, {
-        rth1: 0.05 / options.scale,
-        rth2: 0.1 / options.scale,
-        rmax: 0.2 / options.scale,
-        perterb: 0.001 / options.scale,
-      });
+  const createWorld = () => {
+    options = controls.state;
+    if(!world) {
+      world = new ParticleLife(options, new XorShift128(options.world_seed));
+    } else {
+       world.update(options, new XorShift128(options.world_seed));
     }
-    let world = new ParticleLife(options, new XorShift128(options.world_seed));
 
     // 相互作用を指定する
     interactionSets[options.intset](world.interaction, new XorShift128(options.interact_seed));
@@ -121,7 +104,7 @@ async function main() {
       0, 0  // vx, vy
     ]);
 
-    updateURL(options);
+    updateURL();
     return world;
   }
   
@@ -133,7 +116,7 @@ async function main() {
     }
     
     util.destruct(world);
-    world = createWorld(controls.state);
+    createWorld();
     int_editor.world = world;
     int_editor.colorFunc = (x)=> colorFunc(x);
     int_editor.update();

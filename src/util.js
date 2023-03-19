@@ -64,11 +64,19 @@ export async function loadWasm(wasmFile) {
     heap[key].alloc = (n) => {
       // 同じ型のクラスをインスタンス化
       const _Class = heap[key].constructor;
-      const mem = new _Class(wasm.memory.buffer, 
-          wasm.malloc(_Class.BYTES_PER_ELEMENT * n), n)
+      let ptr;
+      try {
+        ptr = wasm.malloc(_Class.BYTES_PER_ELEMENT * n);
+      } catch {
+        ptr = null;
+      }
+      if(!ptr) {
+        alert('out of memory');
+        throw new Error('out of memory');
+      }
+      const mem = new _Class(wasm.memory.buffer, ptr, n)
 
       mem.ptr = mem.byteOffset; // シュガー
-      if(!mem.ptr) throw new Error('out of memory');
 
       // ガーベージコレクションされるときに free するよう登録
       finalizer.register(mem, mem.ptr);

@@ -28,10 +28,10 @@
       <p>粒子に命が宿る世界を覗き見るサイトです(?)</p>
       <br>
       <div class="columns is-desktop">
-        <div class="column is-narrow">
+        <div class="column is-narrow" style="line-height:1">
         <particles-display width="600" height="600"></particles-display><br>
         <color-scale-editor width="600" height="40"></color-scale-editor>
-        <div style="margin-bottom:4px">
+        <div style="margin-bottom:4px;margin-top:4px">
           <a class="button is-info is-small" id="new-world">新しいワールドを生成</a>
           <a class="button is-info is-small" onClick="navigator.clipboard.writeText(location.href)">URLをコピー</a>
           <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
@@ -41,6 +41,17 @@
           <interaction-editor width="600"></interaction-editor>
         </div>
       </div>
+
+      <style>
+        @media screen and (max-width: 450px) {
+          .section {
+            padding: 1.5rem 1rem;
+          }
+          .column {
+            padding: 0.5rem;
+          }
+        }
+      </style>
 
       <div class="columns">
         <plcontrols></plcontrols>

@@ -56,6 +56,7 @@ typedef struct {
     int32_t nparticles;
     int32_t rth1, rth2, rmax;
     int32_t perterb, decel;
+    int32_t row_div;
 } world_t;
 
 typedef struct {
@@ -398,11 +399,11 @@ void sortParticleindex(int64_t *l, int64_t *r) {
 }
 
 
-void setupXMax(int16_t *xmax, int nrow, int row_div)
+void setupXMax(int16_t *xmax, int nrow)
 {
     double row_height = 1.0 / nrow;
     double rmax = world.rmax / (65536.0 * 65536.0);
-    for(int i = 1; i <= row_div; i++) {
+    for(int i = 1; i <= world.row_div; i++) {
         double dx = std::sqrt( rmax * rmax - 
             ((i - 1) * row_height) * ((i - 1) * row_height) );
 
@@ -421,15 +422,14 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
     rmax2 = (uint64_t)world.rmax * (uint64_t)world.rmax;
 
     int n = world.nparticles;
-    int32_t *p = (int32_t *)(particles + n) + 16;
-    index_t *index = (index_t *)((int32_t)p & 0xfffffff0);
-    index_t **grid = (index_t **)(index + n);
+    int32_t *p = (int32_t *)(particles + n) + 3;    // アラインメント調整
+    index_t *index = (index_t *)((int32_t)p & 0xfffffffc);
+    index_t **grid = (index_t **)(pworld + 1);
     
     int ncol = ((int64_t)1 << 32) / world.rmax;
     if(ncol <= 2) ncol = 1;
     
-    const uint64_t row_div = 1;
-    int nrow = (row_div << 32) / world.rmax;
+    int nrow = ncol * world.row_div;
     if(nrow <= 2) nrow = 1;
     
     if(nrow == 1) {
@@ -437,8 +437,7 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
         return;
     }
     
-    int16_t *xmax = (int16_t*)(grid + ncol * nrow + 1); // xmax[nrow][ncol] + 1
-    setupXMax(xmax, nrow, row_div);
+    int16_t *xmax = (int16_t*)(grid + ncol * nrow + 1); // grid : nrow x ncol + 1
     
     // index particles
     for(int i = 0; i < n; i++) {
@@ -464,6 +463,8 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
         grid[last_rc] = guard;
     }
 
+    setupXMax(xmax, nrow);
+
     // interaction
     #define GRID(col, row) (grid + ((row+nrow) % nrow) * ncol + (col+ncol) % ncol)
     
@@ -471,7 +472,7 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
         for(int row = 0; row < nrow; row++) {
             interactIntraCellPeriodic(interact, xmax[0], GRID(0, row));
             
-            for(int j = 1; j <= row_div; j++) 
+            for(int j = 1; j <= world.row_div; j++) 
                 interactSameColumnPeriodic(interact, xmax[j],
                     GRID(0, row), GRID(0, row+j));
         }
@@ -485,7 +486,7 @@ void EMSCRIPTEN_KEEPALIVE interactParticles(
             interactAdjacentColumn(interact, xmax[0],
                 GRID(col, row), GRID(col+1, row));
 
-            for(int j = 1; j <= row_div; j++) {
+            for(int j = 1; j <= world.row_div; j++) {
                 // (0, j)
                 interactSameColumn(interact, xmax[j],
                     GRID(col, row), GRID(col, row+j));

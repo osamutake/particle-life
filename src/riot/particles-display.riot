@@ -23,13 +23,26 @@
 
   <style type="scss">
     :host {
+      line-height: 1;
+
       > div {
         margin: 0px;
       }
       canvas {
         touch-action: none;
         margin: 0px;
-        max-width: 90vw;
+        max-width: 100vw;
+      }
+      @media screen and (max-width: 450px) {
+        canvas {
+          margin-left: -0.75rem;
+          margin-right: -0.75rem;
+        }
+      }
+      @media screen and (min-width: 1000px) {
+        canvas {
+          min-width: 600px;
+        }
       }
     }
   </style>
@@ -106,7 +119,7 @@
 
       onUpdated(props, state) {
         const screens = {
-          S: 600, M: 900, L: 1200, XL: 1500
+          XS: 400, S: 600, M: 900, L: 1200, XL: 1500
         }
 
         let size = screens[this.state.screen]

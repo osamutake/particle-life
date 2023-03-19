@@ -10,17 +10,27 @@
 
 export class PLInteractionMatrix {
 
-  constructor(options = {}) {
-    util.importOptions(this, options, {
-        nspecies: 30,
-        rth1: 0.05,
-        rth2: 0.1,
-        rmax: 0.2,
-        step: 1.0
-    });
+  constructor(world) {
+    this.update(world);
+  }
+  
+  update(world) {
+    this.world = world;
+    this.matrix = 
+      [...Array(world.nspecies)].map(() =>
+        [...Array(world.nspecies)].map(()=> 
+          [0, 0] ))
 
-    // ３つの値を 粒子種数 x 粒子種数 個 格納する
-    this.mem = wasm.i32.alloc(3 * this.nspecies * this.nspecies * 2);
+    // ３つの値を 粒子種数 x 粒子種数 x 2 個 格納する
+    let len = 3 * world.nspecies * world.nspecies * 2;
+    if(!this.mem) {
+      this.mem = wasm.i32.alloc(len * 4);
+    } else 
+    if(this.mem.length < len){
+      let size = Math.max(this.mem.length * 4, len);
+      this.mem.free;
+      this.mem = wasm.i32.alloc(size);
+    }
   }
 
   // 手動で後始末をする場合に呼ぶ関数
@@ -33,41 +43,53 @@ export class PLInteractionMatrix {
       const func = func_or_i;
 
       // func を使って一気に設定する
-      for(let i = 0; i < this.nspecies; i++)
-        for(let j = 0; j < this.nspecies; j++)
+      for(let i = 0; i < this.world.nspecies; i++)
+        for(let j = 0; j < this.world.nspecies; j++)
           this.set(i, j, ...func(i, j));
 
     } else {
       const i = func_or_i;
-
-      // 整数演算用に事前スケールしておく
-      const n = this.nspecies;
-      const aa = this.step * a /  this.rth1              * 2**32;
-      const bb = this.step * b / (this.rth2 - this.rth1) * 2**32;
-      const cc = this.step * b / (this.rmax - this.rth2) * 2**32;
-      this.mem[3 * (i * n * 2 + j) + 0] = aa;       // forward
-      this.mem[3 * (i * n * 2 + j) + 1] = bb;       // forward
-      this.mem[3 * (i * n * 2 + j) + 2] = cc;       // forward
-      this.mem[3 * (j * n * 2 + i + n) + 0] = aa;   // backword
-      this.mem[3 * (j * n * 2 + i + n) + 1] = bb;   // backword
-      this.mem[3 * (j * n * 2 + i + n) + 2] = cc;   // backword
+      this.matrix[i][j] = [a, b];
+      this.convert(i, j); // this.mem をアップデート
     }
   }
 
   // return [a, b]
   get(i, j) {
-    const n = this.nspecies;
-    return [          // 整数演算用スケールを戻す
-      this.mem[3 * (i * n * 2 + j) + 0] *  this.rth1              / 2**32 / this.step, //  a
-      this.mem[3 * (i * n * 2 + j) + 1] * (this.rth2 - this.rth1) / 2**32 / this.step  //  b
-    ];
+    return this.matrix[i][j];
+  }
+
+  convert(i, j) {
+    const [a, b] = this.matrix[i][j];
+    
+    // 整数演算用に事前スケールしておく
+    const world = this.world;
+    const n = world.nspecies;
+    let aa = a /  world.rth1;
+    let bb = b / (world.rth2 - world.rth1);
+    let cc = b / (world.rmax - world.rth2);
+    aa *= world.step * world.scale * 2**32;
+    bb *= world.step * world.scale * 2**32;
+    cc *= world.step * world.scale * 2**32;
+    this.mem[3 * (i * n * 2 + j) + 0] = aa;       // forward
+    this.mem[3 * (i * n * 2 + j) + 1] = bb;       // forward
+    this.mem[3 * (i * n * 2 + j) + 2] = cc;       // forward
+    this.mem[3 * (j * n * 2 + i + n) + 0] = aa;   // backword
+    this.mem[3 * (j * n * 2 + i + n) + 1] = bb;   // backword
+    this.mem[3 * (j * n * 2 + i + n) + 2] = cc;   // backword
+  }
+  
+  convertAll() {
+    for(let i = 0; i < this.world.nspecies; i++)
+      for(let j = 0; j < this.world.nspecies; j++)
+        this.convert(i, j);
   }
 
   copyFrom(another) {
-    if(this.nspecies != another.nspecies) return;
+    if(this.world.nspecies != another.world.nspecies) return;
     
-    for(let i = 0; i < this.nspecies; i++)
-      for(let j = 0; j < this.nspecies; j++)
+    for(let i = 0; i < this.world.nspecies; i++)
+      for(let j = 0; j < this.world.nspecies; j++)
         this.set(i, j, ...another.get(i, j));
   }
 }

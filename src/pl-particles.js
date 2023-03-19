@@ -21,9 +21,23 @@ index_t grid[nrow * ncol]
 export class PLParticles {
 
   constructor(nparticles) {
+    this.update(nparticles);
+  }
+  
+  update(nparticles) { 
     this.n = Math.floor(nparticles);
     
-    this.mem  = wasm.i32.alloc((6 + 2 + 1) * nparticles);
+    // particles : 6 x n が粒子自身
+    // index : 2 x n がソート用のワーキングメモリ
+    let len = (6 + 2) * nparticles + 2;
+    if(!this.mem) {
+      this.mem  = wasm.i32.alloc(len * 4);
+    } else 
+    if(this.mem.length < len) {
+      let size = Math.max(this.mem.length * 4, len);
+      this.mem.free;
+      this.mem = wasm.i32.alloc(size);
+    }
     this.memVertices = new Int16Array(5 * nparticles);
   }
 

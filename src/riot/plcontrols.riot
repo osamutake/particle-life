@@ -30,49 +30,11 @@
 <plcontrols>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="interact_seed" class="label">相互作用シード</label>
-      <div class="field has-addons">
-        <div class="control">
-          <input class="input" id="interact_seed" type="text" value={ state.interact_seed } size="15">
-        </div>
-        <div class="control">
-          <a class="button is-info" onclick={ regenerateInteractionSeed }>
-            再生成
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="world_seed" class="label">粒子配置シード</label>
-      <div class="field has-addons">
-        <div class="control">
-          <input class="input" id="world_seed" type="text" value={ state.world_seed } size="15">
-        </div>
-        <div class="control">
-          <a class="button is-info" onclick={ regenerateWorldSeed }>
-            再生成
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="columns">
-    <div class="column is-narrow field">
-      <label for="nspecies" class="label">粒子種数</label>
-      <div class="control">
-        <input class="input" id="nspecies" type="text" value={state.nspecies} size="2" onchange={ editorChanged } />
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="nparticles" class="label">√粒子数</label>
-      <div class="control">
-        <input class="input" id="nlattice" type="text" value={state.nlattice} size="2" onchange={ editorChanged } />
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="scale" class="label">スケール</label>
-      <div class="control">
-        <input class="input" id="scale" type="text"  value={state.scale} size="2" onchange={ editorChanged } />
+      <label for="recommendation" class="label">おすすめ設定</label>
+      <div class="select">
+        <select id="recommendation" value="" onchange={ recommendationChange }>
+          <option  each={ recommendation in recommendations } key={recommendation[1]} value={recommendation[1]}>{recommendation[0]}</option>
+        </select>
       </div>
     </div>
     <div class="column is-narrow field">
@@ -101,10 +63,67 @@
       <label for="screen" class="label">画面</label>
       <div class="select">
         <select id="screen" value={state.screen} onchange={ editorChanged }>
+          <option value="XS">XS</option>
           <option value="S">S</option>
           <option value="M">M</option>
           <option value="L">L</option>
         </select>
+      </div>
+    </div>
+  </div>
+  <div style={`display: ${ $('#recommendation').value=='?' ? 'block' : 'none' }`}>
+
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="interact_seed" class="label">相互作用シード</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" id="interact_seed" type="text" value={ state.interact_seed } size="8">
+        </div>
+        <div class="control">
+          <a class="button is-info" onclick={ regenerateInteractionSeed }>
+            <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="world_seed" class="label">粒子配置シード</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" id="world_seed" type="text" value={ state.world_seed } size="8">
+        </div>
+        <div class="control">
+          <a class="button is-info" onclick={ regenerateWorldSeed }>
+            <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="nspecies" class="label">粒子種数</label>
+      <div class="control">
+        <input class="input" id="nspecies" type="text" value={state.nspecies} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="nparticles" class="label">√粒子数</label>
+      <div class="control">
+        <input class="input" id="nlattice" type="text" value={state.nlattice} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="scale" class="label">スケール</label>
+      <div class="control">
+        <input class="input" id="scale" type="text"  value={state.scale} size="2" onchange={ editorChanged } />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="tail" class="label">尾の長さ</label>
+      <div class="control">
+        <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
@@ -126,22 +145,24 @@
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="tail" class="label">尾の長さ</label>
-      <div class="control">
-        <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
-      </div>
-    </div>
-    <div class="column is-narrow field">
       <label for="maxfps" class="label">最大fps</label>
       <div class="control">
         <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
+  </div>
 
   <style type="scss">
     :host span.icon {
       margin: 0px -2px !important;
+    }
+    .columns {
+      display: flex;
+    }
+    .is-narrow {
+      flex: none;
+      width: unset;
     }
   </style>
 
@@ -156,11 +177,11 @@
           interact_seed: 2**53 * Math.random(),
           world_seed: 2**53 * Math.random(),
           nspecies: 6,
-          nlattice: 60,
+          nlattice: 30,
           scale: 3,
           tail: 0,
           maxfps: 60,
-          step: 0.5,
+          step: 1,
           intset: "",
           screen: "S",
         };
@@ -181,6 +202,17 @@
         }
         delete result.validation;
         return result;
+      },
+
+      recommendations: [['自分で設定', '?']],
+
+      recommendationChange(e) {
+        let params = this.parseParameters(e.target.value);
+        params.world_seed = 2**53 * Math.random();
+        params.interact_seed = 2**53 * Math.random();
+        this.update(params);
+        if(e.target.value != '?')
+          this.dispatchEvent("restart", this.state);
       },
 
       editorChanged(e) {
@@ -233,12 +265,75 @@
             this.$('#'+id).classList.remove('is-danger');
           }
         }
+
       },
 
       onUpdated(props, state) {
         // right after the component template is updated after an update call
           this.dispatchEvent("update", this.state);
       },
+
+      encodeParameters(state = this.state) {
+        let search = '?' + (state.screen != 'S' ? state.screen : '');
+        search += state.nspecies + "_" + state.nlattice;
+        search += "_" + state.interact_seed + state.intset + "_" + state.world_seed;
+        if(state.step != 1) {
+          search += "_" + state.tail;
+          search += "_" + state.scale;
+          search += "_" + state.step;
+        } else
+        if(state.scale != 1) {
+          search += "_" + state.tail;
+          search += "_" + state.scale;
+        } else
+        if(state.tail > 0) search += "_" + state.tail;
+        return search;
+      },
+
+      setParameters(search) {
+        this.parseParameters(search, this.state);
+      },
+
+      parseParameters(search, result = {}) {
+        if(!search) return {};  // 先頭に ? もついていない状態
+
+        // 先頭の ? を外して _ で分ける
+        let options = search.substring(1).split('_');
+        if(options.length == 4) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed] = options;
+        } else
+        if(options.length == 5) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail] = options;
+        } else
+        if(options.length == 6) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail, result.scale] = options;
+        } else
+        if(options.length == 7) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail, result.scale, result.step] = options;
+        } else {
+          return {};
+        }
+        
+        // スクリーンサイズ
+        let match = /^(XS|S|M|L)(.+)/.exec(result.nspecies);
+        if(match) {
+          result.screen = match[1];
+          result.nspecies = match[2];
+        }
+
+        // 大文字のアルファベットは相互作用セットの指定
+        if(/[A-Z]/.test(result.interact_seed.slice(-1))) {
+          result.intset = result.interact_seed.slice(-1);
+          result.interact_seed = result.interact_seed.slice(0,-1);
+        }
+
+        return result;
+      }
+
     }
   </script>
 </plcontrols>

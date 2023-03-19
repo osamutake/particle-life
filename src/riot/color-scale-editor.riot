@@ -43,10 +43,18 @@
       --ctrl-width: 600px;
       display: inline-block;
       width: var(--ctrl-width);
-      max-width: 90vw !important;
+      max-width: 100vw !important;
+      line-height: 1;
+
+      @media screen and (max-width: 450px) {
+        & {
+          margin-left: -0.75rem;
+          margin-right: -0.75rem;
+        }
+      }
 
       > div {
-        max-width: 90vw;
+        max-width: 100vw;
       }
 
       a.button {
@@ -101,7 +109,7 @@
             e.preventDefault()
 
             const [dx, dy] = [newX - oldX, newY - oldY]
-            this.state.scale /= 1 + dy / canvas.clientHeight
+            this.state.scale /= 1 + dy / canvas.clientHeight / 8
             this.state.offset -= dx / canvas.clientWidth / this.state.scale / 2
             this.update()
           },
