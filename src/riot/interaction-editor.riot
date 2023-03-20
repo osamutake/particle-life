@@ -91,8 +91,8 @@
           const n = this.world.nspecies;
           const crect = viewer.getBoundingClientRect();
           const ij = [
-            Math.floor((e.clientY-crect.top ) / viewer.height * (n+1)) - 1,
-            Math.floor((e.clientX-crect.left) / viewer.width  * (n+1)) - 1
+            Math.floor((e.clientY-crect.top ) / viewer.clientHeight * (n+1)) - 1,
+            Math.floor((e.clientX-crect.left) / viewer.clientWidth  * (n+1)) - 1
           ];
           if (ij[0] < 0 || ij[0] >= n || 
               ij[1] < 0 || ij[1] >= n) {
