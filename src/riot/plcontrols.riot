@@ -30,7 +30,7 @@
 <plcontrols>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="recommendation" class="label">おすすめ設定</label>
+      <label for="recommendation" class="label">ワールド設定</label>
       <div class="select">
         <select id="recommendation" value="" onchange={ recommendationChange }>
           <option  each={ recommendation in recommendations } key={recommendation[1]} value={recommendation[1]}>{recommendation[0]}</option>
@@ -42,7 +42,7 @@
       <div class="field has-addons">
         <p class="control">
           <button class="button" onclick={ ()=> dispatchEvent("restart", state) }>
-            <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+            <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
           </button>
         </p>
         <p class="control">
@@ -68,6 +68,12 @@
           <option value="M">M</option>
           <option value="L">L</option>
         </select>
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="maxfps" class="label">最大fps</label>
+      <div class="control">
+        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
@@ -144,13 +150,9 @@
         <input class="input" id="step" type="text"  value={state.step} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
-    <div class="column is-narrow field">
-      <label for="maxfps" class="label">最大fps</label>
-      <div class="control">
-        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
-      </div>
-    </div>
   </div>
+
+  <a class="button is-info is-small" id="show-editor">ワールドエディタを表示/非表示</a>
   </div>
 
   <style type="scss">
@@ -185,7 +187,35 @@
           intset: "",
           screen: "S",
         };
+
+        this.recommendations.push(...this.props.recommendations);
         this.update();
+
+        if(location.search) {
+          this.setParameters(location.search);
+        } else {
+          let recom = this.recommendations.find((rec)=> rec.length > 2)[1];
+          this.setParameters(recom);
+          this.$('#recommendation').value = recom;
+        }
+
+        this.flashControl(this.$('#recommendation'), '#ff3');
+      },
+
+      flashing: false,
+
+      async flashControl(control, color) {
+        if(this.flashing) return;
+
+        this.flashing = true;
+        const original = control.style.backgroundColor;
+        for(let i = 0; i < 5; i++) {
+          control.style.backgroundColor = color;
+          await util.sleep(400);
+          control.style.backgroundColor = original;
+          await util.sleep(400);
+        }
+        this.flashing = false;
       },
 
       validatedState(randomize) {
@@ -204,15 +234,18 @@
         return result;
       },
 
-      recommendations: [['自分で設定', '?']],
+      recommendations: [['URL指定', ''], ['自分で', '?']],
 
       recommendationChange(e) {
         let params = this.parseParameters(e.target.value);
         params.world_seed = 2**53 * Math.random();
         params.interact_seed = 2**53 * Math.random();
+        if(!params.intset) params.intset = '';
         this.update(params);
         if(e.target.value != '?')
           this.dispatchEvent("restart", this.state);
+
+        this.flashControl(document.getElementById('new-world'), '#880');
       },
 
       editorChanged(e) {
@@ -245,12 +278,12 @@
           recording: 'boolean',
           interact_seed: ['required', 'integer', 'min:1'],
           world_seed: ['required', 'integer', 'min:1'],
-          nspecies: ['required', 'integer', 'between:1,50'],
-          nlattice: ['required', 'integer', 'between:5,150'],
-          scale: ['required', 'numeric', 'between:1,10'],
+          nspecies: ['required', 'integer', 'between:1,200'],
+          nlattice: ['required', 'integer', 'between:5,300'],
+          scale: ['required', 'numeric', 'between:0.5,20'],
           tail: ['required', 'numeric', 'min:0'],
           maxfps: ['required', 'numeric', 'between:0,1000'],
-          intset: ['required', 'regex:/^[A-Z]?$/'],
+          intset: ['regex:/^[A-Z]?$/'],
           screen: ['required'],
         };
 
@@ -260,7 +293,8 @@
         for(let id of Object.keys(rule)) {
           if(state.validation.errors.errors[id]) {
             this.$('#'+id).classList.add('is-danger');
-            state[id] = this.state[id]; // not changing
+            if(this.lastState && this.lastState[id])
+              state[id] = this.lastState[id]; // 直前の値に戻す
           } else {
             this.$('#'+id).classList.remove('is-danger');
           }
@@ -269,8 +303,10 @@
       },
 
       onUpdated(props, state) {
-        // right after the component template is updated after an update call
           this.dispatchEvent("update", this.state);
+
+          // 直前の設定を取っておく
+          this.lastState = Object.assign({}, this.state);
       },
 
       encodeParameters(state = this.state) {

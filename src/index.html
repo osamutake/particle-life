@@ -6,11 +6,29 @@
     <meta name="description" content="粒子に命が宿る世界を覗き見るサイトです(?)">
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="@osamu_takeuchi" />
-    <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/particle-life/" />
+    <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/" />
     <meta property="og:title" content="Particle Life | 武内＠筑波大" />
     <meta property="og:description" content="粒子に命が宿る世界を覗き見るサイトです(?)" />
-    <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/particle-life/og_image.png" />
- 
+    <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/og_image.png" />
+
+    <link rel="apple-touch-icon" sizes="57x57" href="./favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="./favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="./favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="./favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="./favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="./favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="./favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="./favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="./favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon/favicon-16x16.png">
+    <link rel="manifest" href="./favicon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="./favicon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
     <title>Particle Life</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" 
       integrity="sha256-rTpdO0HXBCNpreAHcu6tB2Ppg515Vo+5GtYSsnNLz+8=" crossorigin="anonymous">
@@ -43,7 +61,7 @@
       </div>
 
       <style>
-        @media screen and (max-width: 450px) {
+        @media screen and (max-width: 640px) {
           .section {
             padding: 1.5rem 1rem;
           }
@@ -56,10 +74,21 @@
       <div class="columns">
         <plcontrols></plcontrols>
       </div>
-      <a class="button is-info is-small" id="show-editor">ワールドエディタを表示/非表示</a>
 
       <div id="video"></div>
 
+      <div class="content">
+      <ul>
+        <li>[新しいワールドを生成] を押すたびに異なる世界に移れます
+        <li>[ワールド設定] でお勧めの設定を選んだら何度か押してみてください
+        <li>[URLをコピー] で「今いる世界の URL」をコピーできます
+        <li>[描画制御] の <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span> で現在の世界をリプレイできます
+        <li>[画面] は XS がスマホ用、S 以上が PC 用です
+        <li>ダブルクリック/タップで指を突っ込めます
+        <li>カラースケール上下左右にいじると色が変わります
+      </ul>
+      </div>
+      
       <hr>
       
       <a href="https://github.com/osamutake/particle-life"><ion-icon name="logo-github"></ion-icon> GitHub project site</a>

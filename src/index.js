@@ -12,8 +12,14 @@ import { XorShift128 } from './xorshift128.js'
 import { registerAllTags } from '../obj/riot_tags.js'
 
 
-async function main() {
+function windowResize() {
+    document.body.style.setProperty('--100vw', `${document.body.clientWidth}px`);
+}
 
+async function main() {
+  window.addEventListener('resize', windowResize);
+  windowResize();
+  
   // グローバル変数を設定
   let wasm = await util.loadWasm('particle-life.wasm');
   window.wasm = wasm;
@@ -56,9 +62,8 @@ async function main() {
   });
   colorScaleEditor.update();
   
-  const controls = riot.mount('plcontrols')[0];
-  controls.recommendations = await (await fetch('recommendations.json')).json();
-  controls.setParameters(location.search)
+  const controls = riot.mount('plcontrols', 
+          {recommendations: await (await fetch('recommendations.json')).json()})[0];
 
   const fps = document.getElementById('fps');
   const render = ()=> {

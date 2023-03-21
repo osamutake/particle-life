@@ -43,10 +43,10 @@
       --ctrl-width: 600px;
       display: inline-block;
       width: var(--ctrl-width);
-      max-width: 100vw !important;
+      max-width: var(--100vw) !important;
       line-height: 1;
 
-      @media screen and (max-width: 450px) {
+      @media screen and (max-width: 640px) {
         & {
           margin-left: -0.75rem;
           margin-right: -0.75rem;
@@ -54,7 +54,7 @@
       }
 
       > div {
-        max-width: 100vw;
+        max-width: 100%;
       }
 
       a.button {
