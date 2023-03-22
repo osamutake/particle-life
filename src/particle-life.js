@@ -17,7 +17,7 @@ export class ParticleLife {
     this.update(options, rand);
   }
 
-  update(options, rand) {
+  update(options, rand = this.rand) {
 
     // デフォルト値を指定
     util.importOptions(this, options, {

@@ -78,11 +78,8 @@ async function main() {
   }
   const renderer = new CanvasRenderer(display.$('canvas'), render, exportVid);
 
-  const updateURL = ()=> 
-    history.replaceState({}, '', controls.encodeParameters());
-  
   controls.addEventListener("update", (e) => {
-    if(display.state.screen != e.detail.screen) updateURL();
+    if(world) world.update(e.detail);
     display.update({tail: e.detail.tail, screen: e.detail.screen});
     renderer.maxFps = e.detail.maxfps;
   });
@@ -112,7 +109,6 @@ async function main() {
       0, 0  // vx, vy
     ]);
 
-    updateURL();
     return world;
   }
   

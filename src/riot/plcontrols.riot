@@ -1,4 +1,4 @@
-<!-----------------------------------------------------------------
+p<!-----------------------------------------------------------------
 
   ワールド生成パラメータを制御するためのコントロール
   css は bulma を使用
@@ -155,6 +155,12 @@
         <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
+    <div class="column is-narrow field">
+      <label for="perterb" class="label">揺動</label>
+      <div class="control">
+        <input id="perterb" type="checkbox" checked={state.perterb != 0} onchange={ editorChanged } /> 
+      </div>
+    </div>
   </div>
 
   <a class="button is-info is-small" id="show-editor">パラメータエディタを表示/非表示</a>
@@ -190,7 +196,7 @@
       onMounted() {
         util.implementEventTarget(this);
 
-        this.state = {
+        this.default_state = {
           pause: false,
           recording: false,
           interact_seed: 2**53 * Math.random(),
@@ -202,11 +208,13 @@
           maxfps: 60,
           step: 1,
           intset: "",
+          perterb: 0.001,
           screen: "S",
         };
+        
+        this.state = Object.assign({}, this.default_state);
 
         this.recommendations.push(...this.props.recommendations);
-        this.update();
 
         if(location.search) {
           this.setParameters(location.search);
@@ -254,15 +262,14 @@
       recommendations: [['自分で', '?']],
 
       recommendationChange(e) {
-        let params = this.parseParameters(e.target.value);
-        if(!params.intset) params.intset = '';
         if(e.target.value != '?' && e.target.value) {
+          let params = this.parseParameters(e.target.value);
           params.world_seed = 2**53 * Math.random();
           params.interact_seed = 2**53 * Math.random();
           this.update(params);
           this.dispatchEvent("restart", this.state);
         } else {
-          this.update(params);
+          this.update();
         }
 
         this.flashControl(document.getElementById('new-world'), '#880');
@@ -270,6 +277,9 @@
 
       editorChanged(e) {
         let {id, value} = e.target;
+        if(e.target.id == "perterb") {
+          this.update({perterb: (e.target.checked ? 0.001 : 0)});
+        } else
         if(e.target.id == "scale") {
           this.update({
             scale: value,
@@ -327,12 +337,15 @@
 
           // 直前の設定を取っておく
           this.lastState = Object.assign({}, this.state);
+
+          history.replaceState({}, '', this.encodeParameters());
       },
 
       encodeParameters(state = this.state) {
         let search = '?' + (state.screen != 'S' ? state.screen : '');
         search += state.nspecies + "_" + state.nlattice;
         search += "_" + state.interact_seed + state.intset + "_" + state.world_seed;
+        search += state.perterb  ? "" : "n";
         if(state.step != 1) {
           search += "_" + state.tail;
           search += "_" + state.scale;
@@ -347,11 +360,12 @@
       },
 
       setParameters(search) {
-        this.parseParameters(search, this.state);
+        this.update(this.parseParameters(search));
       },
 
-      parseParameters(search, result = {}) {
-        if(!search) return {};  // 先頭に ? もついていない状態
+      parseParameters(search) {
+        let result = Object.assign({}, this.default_state);
+        if(!search) return result;  // 先頭に ? もついていない状態
 
         // 先頭の ? を外して _ で分ける
         let options = search.substring(1).split('_');
@@ -374,8 +388,15 @@
           return {};
         }
         
+        // 揺動
+        let match = /^(.*)n$/.exec(result.world_seed);
+        if(match) {
+          result.world_seed = match[1];
+          result.perterb = 0;
+        }
+
         // スクリーンサイズ
-        let match = /^(XS|S|M|L)(.+)/.exec(result.nspecies);
+        match = /^(XS|S|M|L)(.+)/.exec(result.nspecies);
         if(match) {
           result.screen = match[1];
           result.nspecies = match[2];
