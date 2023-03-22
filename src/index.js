@@ -82,6 +82,7 @@ async function main() {
     if(world) world.update(e.detail);
     display.update({tail: e.detail.tail, screen: e.detail.screen});
     renderer.maxFps = e.detail.maxfps;
+    document.querySelector('color-scale-editor').style.display = e.detail.showPalette ? 'block' : 'none';
   });
 
   controls.update();

@@ -58,6 +58,12 @@ p<!-----------------------------------------------------------------
             <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
           </button>
         </p>
+        <p class="control">
+          <button id="palette" class={ state.showPalette ? "button is-dark" : "button" } 
+                  onclick={ ()=>{ update({"showPalette": !state.showPalette }) } }>
+            <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span>
+          </button>
+        </p>
       </div>
     </div>
     <div class="column is-narrow field">
@@ -72,15 +78,15 @@ p<!-----------------------------------------------------------------
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="maxfps" class="label">最大fps</label>
-      <div class="control">
-        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
-      </div>
-    </div>
-    <div class="column is-narrow field">
       <label for="particle-size" class="label">粒子サイズ</label>
       <div class="control">
         <input class="input" id="particle-size" type="text"  value="2.5" size="2" /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="maxfps" class="label">最大fps</label>
+      <div class="control">
+        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
