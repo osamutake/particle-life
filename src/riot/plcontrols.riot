@@ -33,6 +33,7 @@
       <label for="recommendation" class="label">ワールド設定</label>
       <div class="select">
         <select id="recommendation" value="" onchange={ recommendationChange }>
+          <option value="" >URL指定</option>
           <option  each={ recommendation in recommendations } key={recommendation[1]} value={recommendation[1]}>{recommendation[0]}</option>
         </select>
       </div>
@@ -76,10 +77,26 @@
         <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
+    <div class="column is-narrow field">
+      <label for="particle-size" class="label">粒子サイズ</label>
+      <div class="control">
+        <input class="input" id="particle-size" type="text"  value="2.5" size="2" /> 
+      </div>
+    </div>
   </div>
   <div style={`display: ${ $('#recommendation').value=='?' ? 'block' : 'none' }`}>
 
   <div class="columns">
+    <div class="column is-narrow field">
+      <label for="intset" class="label">相互作用セット</label>
+      <div class="select">
+        <select id="intset" value={state.intset} onchange={ editorChanged }>
+          <option value="">デフォルト</option>
+          <option value="A">多粒子種補正A</option>
+          <option value="B">多粒子種補正B</option>
+        </select>
+      </div>
+    </div>
     <div class="column is-narrow field">
       <label for="interact_seed" class="label">相互作用シード</label>
       <div class="field has-addons">
@@ -127,33 +144,31 @@
       </div>
     </div>
     <div class="column is-narrow field">
+      <label for="step" class="label">計算ステップ</label>
+      <div class="control">
+        <input class="input" id="step" type="text"  value={state.step} size="2" onchange={ editorChanged } /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
       <label for="tail" class="label">尾の長さ</label>
       <div class="control">
         <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
-  <div class="columns">
+
+  <a class="button is-info is-small" id="show-editor">パラメータエディタを表示/非表示</a>
+  </div>
+
+  <div class="columns" style="display:none">
     <div class="column is-narrow field">
-      <label for="intset" class="label">相互作用セット</label>
-      <div class="select">
-        <select id="intset" value={state.intset} onchange={ editorChanged }>
-          <option value="">デフォルト</option>
-          <option value="A">多粒子種補正A</option>
-          <option value="B">多粒子種補正B</option>
-        </select>
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="step" class="label">計算ステップ</label>
+      <label for="webgl" class="label">WebGL</label>
       <div class="control">
-        <input class="input" id="step" type="text"  value={state.step} size="2" onchange={ editorChanged } /> 
+        <input type="checkbox" id="webgl" checked="checked"/> 
       </div>
     </div>
   </div>
 
-  <a class="button is-info is-small" id="show-editor">ワールドエディタを表示/非表示</a>
-  </div>
 
   <style type="scss">
     :host span.icon {
@@ -161,6 +176,8 @@
     }
     .columns {
       display: flex;
+      max-width: var(--100vw);
+      flex-wrap: wrap;
     }
     .is-narrow {
       flex: none;
@@ -234,16 +251,19 @@
         return result;
       },
 
-      recommendations: [['URL指定', ''], ['自分で', '?']],
+      recommendations: [['自分で', '?']],
 
       recommendationChange(e) {
         let params = this.parseParameters(e.target.value);
-        params.world_seed = 2**53 * Math.random();
-        params.interact_seed = 2**53 * Math.random();
         if(!params.intset) params.intset = '';
-        this.update(params);
-        if(e.target.value != '?')
+        if(e.target.value != '?' && e.target.value) {
+          params.world_seed = 2**53 * Math.random();
+          params.interact_seed = 2**53 * Math.random();
+          this.update(params);
           this.dispatchEvent("restart", this.state);
+        } else {
+          this.update(params);
+        }
 
         this.flashControl(document.getElementById('new-world'), '#880');
       },

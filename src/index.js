@@ -12,14 +12,8 @@ import { XorShift128 } from './xorshift128.js'
 import { registerAllTags } from '../obj/riot_tags.js'
 
 
-function windowResize() {
-    document.body.style.setProperty('--100vw', `${document.body.clientWidth}px`);
-}
-
 async function main() {
-  window.addEventListener('resize', windowResize);
-  windowResize();
-  
+
   // グローバル変数を設定
   let wasm = await util.loadWasm('particle-life.wasm');
   window.wasm = wasm;
@@ -29,6 +23,15 @@ async function main() {
   // riot タグを読み込み
   registerAllTags(riot);
 
+  // body の横幅(スクロールバーを除いた値)を 
+  // CSS から var(--100vw) で使えるようにする
+
+  const measureWindowSize = ()=>
+      document.body.style.setProperty('--100vw', `${document.body.clientWidth}px`);
+
+  window.addEventListener('resize', measureWindowSize);
+  measureWindowSize();
+  
   // コンポーネントを構成する
     
   let world;
@@ -171,41 +174,6 @@ async function main() {
 window.addEventListener('load', () => {
   main()
 })
-
-
-// ****************************************
-/// 渡されたパラメータを使って値を設定する
-// ****************************************
-
-function parametersFromURL(state) {
-  if(!location.search) return;
-
-  let options = location.search.substring(1).split('_');
-  if(options.length == 4) {
-    [state.nspecies, state.nlattice, state.interact_seed, state.world_seed] = options;
-  }
-  if(options.length == 5) {
-    [state.nspecies, state.nlattice, state.interact_seed, state.world_seed, state.tail] = options;
-  }
-  if(options.length == 6) {
-    [state.nspecies, state.nlattice, state.interact_seed, state.world_seed, state.tail, state.scale] = options;
-  }
-  if(options.length == 7) {
-    [state.nspecies, state.nlattice, state.interact_seed, state.world_seed, state.tail, state.scale, state.step] = options;
-  }
-  
-  let match = /^(S|M|L)(.+)/.exec(state.nspecies);
-  if(match) {
-    state.screen = match[1];
-    state.nspecies = match[2];
-  }
-
-  // 大文字のアルファベットは相互作用セットの指定
-  if(/[A-Z]/.test(state.interact_seed.slice(-1))) {
-    state.intset = state.interact_seed.slice(-1);
-    state.interact_seed = state.interact_seed.slice(0,-1);
-  }
-}
 
 // ****************************************
 /// 録画データを Blob として受け取り表示する

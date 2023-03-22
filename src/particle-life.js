@@ -23,7 +23,6 @@ export class ParticleLife {
     util.importOptions(this, options, {
       nspecies: 6,
       nlattice: 30,
-      particle_radius: 0.0025,
       rth1: 0.05,
       rth2: 0.1,
       rmax: 0.2,
