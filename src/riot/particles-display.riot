@@ -84,18 +84,18 @@
         let mouseDoubleDown = false;
         this.defineDragBehavior( canvas, {
           down: (e, x, y) => {
-          	if( canvasTapCount == 0 ) {
-            	// シングルタップ
-          		canvasTapCount++;
-          		setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
+            if( canvasTapCount == 0 ) {
+              // シングルタップ
+              canvasTapCount++;
+              setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
 
-          	} else {
-            	// ダブルタップ
-          		canvasTapCount = 0 ;
+            } else {
+              // ダブルタップ
+              canvasTapCount = 0 ;
 
               mouseDoubleDown = true;
               [this.state.repelX, this.state.repelY] = mouse2xy(x, y)
-          	}
+            }
           },
           move: (e, mouseDown, newX, newY, oldX, oldY) => {
             if(mouseDown) {
@@ -233,30 +233,29 @@
         gl.viewport(0, 0, canvas.width, canvas.height);
 
         let u_texture = gl.getUniformLocation(gl.program, 'u_texture');
-    		gl.uniform1i(u_texture, 0);
+        gl.uniform1i(u_texture, 0);
 
         // 一旦使わない設定にしておく
         let u_use_texture = gl.getUniformLocation(gl.program, 'u_use_texture');
         gl.uniform1i(u_use_texture, false);
 
-    		var img = new Image();
-    		img.onload = function(e){
-    			let texture = gl.createTexture();
-    			gl.bindTexture(gl.TEXTURE_2D, texture);
-    			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-    			gl.generateMipmap(gl.TEXTURE_2D);
-    			gl.bindTexture(gl.TEXTURE_2D, null);
-      		gl.activeTexture(gl.TEXTURE0);
-      		gl.bindTexture(gl.TEXTURE_2D, texture);
-          // これ、とても遅くなる？
-//          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        var img = new Image();
+        img.onload = function(e){
+          let texture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+          gl.generateMipmap(gl.TEXTURE_2D);
+          gl.bindTexture(gl.TEXTURE_2D, null);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 
           // 使えるようになったので ON にする
           gl.uniform1i(u_use_texture, true);
-    		};
-    		
+        };
+        
         // 32px x 32px circle
-    		img.src = `data:image/png;base64,
+        img.src = `data:image/png;base64,
             iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABJklEQVRYw82X
             oW4CQRRFz5sGV9O0+PYLUFiyGsVH9GtQWJJqPqFqFbYGvgB8SxBULSUXwSOp
             IM22XebtsZPZeyc77819Rk0k3QNDYAD0gCfgzpe3wApYAnPg1cw2NIGkvqSp
