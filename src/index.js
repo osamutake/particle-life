@@ -188,7 +188,7 @@ async function main() {
   const helpPopup = riot.mount("help-popup")[0];
   let help = "";
   helpPopup.messages.forEach( (message) => {
-    help += "<li>" + message[0] + "</li>";
+    help += "<li>" + message[0].split(/<br>[\s\n]*<br>/).join("</li><li>") + "</li>";
   });
   const helpList = document.getElementById("help-list").innerHTML = help;
 }

@@ -6,11 +6,29 @@
     <meta name="description" content="粒子に命が宿る世界を覗き見るサイトです(?)">
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="@osamu_takeuchi" />
-    <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/particle-life/" />
+    <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/" />
     <meta property="og:title" content="Particle Life | 武内＠筑波大" />
-    <meta property="og:description" content="粒子に命が宿る世界を覗き見るサイトです(?)" />
-    <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/particle-life/og_image.png" />
- 
+    <meta property="og:description" content="粒子に命が宿る世界をのんびり眺めるサイトです。飽きたら「次のワールドを生成」を押してください。" />
+    <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/og_image.png" />
+
+    <link rel="apple-touch-icon" sizes="57x57" href="./favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="./favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="./favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="./favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="./favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="./favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="./favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="./favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="./favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon/favicon-16x16.png">
+    <link rel="manifest" href="./favicon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="./favicon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
     <title>Particle Life</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" 
       integrity="sha256-rTpdO0HXBCNpreAHcu6tB2Ppg515Vo+5GtYSsnNLz+8=" crossorigin="anonymous">
@@ -25,30 +43,72 @@
     <div class="container">
       <h1 class="title is-3">Particle Life</h1>
 
-      <p>粒子に命が宿る世界を覗き見るサイトです(?)</p>
+      <p>粒子に命が宿る世界をのんびり眺めるサイトです。飽きたら「次のワールドを生成」を押してください。</p>
       <br>
       <div class="columns is-desktop">
-        <div class="column is-narrow">
-        <particles-display width="600" height="600"></particles-display><br>
-        <color-scale-editor width="600" height="40"></color-scale-editor>
-        <div style="margin-bottom:4px">
-          <a class="button is-info is-small" id="new-world">新しいワールドを生成</a>
-          <a class="button is-info is-small" onClick="navigator.clipboard.writeText(location.href)">URLをコピー</a>
-          <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
-        </div>
+        <div class="column is-narrow" style="line-height:1;position:relative;">
+          <help-popup></help-popup>
+          <particles-display width="600" height="600"></particles-display><br>
+          <color-scale-editor width="600" height="40"></color-scale-editor>
+          <div class="top-buttons">
+            <a class="button is-info is-small" id="new-world">次のワールドを生成</a>
+            <a class="button is-info is-small" id="copy-url">このワールドをシェア&nbsp;&nbsp;&nbsp;
+                <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
+            <div class="block" id="copy-url-message">
+              <span class="tag is-success">
+                このワールドへの URL をコピーしました
+              </span>
+            </div>
+            <span id="fps" style="vertical-align:top;margin-left:10px"></span>
+          </div>
         </div>
         <div class="column is-narrow" id="world-editor">
           <interaction-editor width="600"></interaction-editor>
         </div>
       </div>
 
+      <style>
+        @media screen and (max-width: 640px) {
+          .section {
+            padding: 1.5rem 1rem;
+          }
+          .column {
+            padding: 0.5rem;
+          }
+        }
+        .top-buttons {
+          position: relative;
+          margin-bottom:4px;
+          margin-top:4px;
+          overflow-x: clip;
+          max-width: var(--100vw);
+          white-space: nowrap;
+        }
+        @media screen and (max-width: 420px) {
+          .top-buttons {
+            margin-left: -1rem;
+          }
+        }
+        #copy-url-message {
+          display: block;
+          position: absolute;
+          top: -40px;
+          left: 70px;
+          
+        }
+      </style>
+
       <div class="columns">
         <plcontrols></plcontrols>
       </div>
-      <a class="button is-info is-small" id="show-editor">ワールドエディタを表示/非表示</a>
 
       <div id="video"></div>
 
+      <div class="content">
+      <ul id="help-list">
+      </ul>
+      </div>
+      
       <hr>
       
       <a href="https://github.com/osamutake/particle-life"><ion-icon name="logo-github"></ion-icon> GitHub project site</a>
