@@ -80,6 +80,7 @@ p<!-----------------------------------------------------------------
           <option value="S">S</option>
           <option value="M">M</option>
           <option value="L">L</option>
+          <option value="Full">Full</option>
         </select>
       </div>
     </div>
@@ -243,6 +244,15 @@ p<!-----------------------------------------------------------------
         }
 
         this.flashControl(this.$('#recommendation'), '#ff3');
+
+        const canvas = document.getElementById("particles-display");
+        canvas.addEventListener('fullscreenchange', (e) => {
+          if(!document.fullscreenElement) {
+            // フルスクリーンが終了した
+            this.state.screen = this.lastScreen;
+            this.update();
+          }
+        });
       },
 
       flashing: false,
@@ -343,16 +353,21 @@ p<!-----------------------------------------------------------------
           if(state.validation.errors.errors[id]) {
             this.$('#'+id).classList.add('is-danger');
             if(this.lastState && this.lastState[id])
-              state[id] = this.lastState[id]; // 直前の値に戻す
+              this.state[id] = this.lastState[id]; // 直前の値に戻す
           } else {
             this.$('#'+id).classList.remove('is-danger');
           }
         }
-
       },
-
+      
       onUpdated(props, state) {
           this.dispatchEvent("update", this.state);
+
+          if(state.screen == "Full") {
+            this.lastScreen = this.lastState.screen;
+            const canvas = document.getElementById("particles-display");
+            canvas.requestFullscreen();
+          }
 
           // 直前の設定を取っておく
           this.lastState = Object.assign({}, this.state);

@@ -124,10 +124,14 @@
 
       onUpdated(props, state) {
         const screens = {
-          XS: 400, S: 600, M: 900, L: 1200, XL: 1500
+          XS: 400, S: 600, M: 900, L: 1200, XL: 1500, Full: 0
         }
-
+        
         let size = screens[this.state.screen]
+        if(this.state.screen == "Full") {
+           size = Math.min(window.screen.width, window.screen.height);
+        }
+        
         let canvas = this.$('canvas');
         if(canvas && (canvas.width != size)) {
           [canvas.width, canvas.height] =
