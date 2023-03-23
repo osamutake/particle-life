@@ -57,7 +57,8 @@
           repelY: NaN,
           offsetX: 0,
           offsetY: 0,
-          tail: 0
+          tail: 0,
+          particleSize: 2.5
         }
 
         this.initializeRequired = true;
@@ -66,6 +67,8 @@
 
         // ワーキングキャンバスを作成
         this.buffer = canvas.cloneNode();   // WebGL で使う
+        this.buffer.width = this.buffer.width * 2;
+        this.buffer.height = this.buffer.height * 2;
         this.buffer2 = canvas.cloneNode();  // スクロール処理の前
 
         // デバッグ用に表示する場合
@@ -74,10 +77,9 @@
 
         // マウス座標から x, y 座標に直す
         const mouse2xy = (mouseX, mouseY) => {
-          return [
-            mouseX / canvas.clientWidth  - 0.5 + this.state.offsetX, 
-            mouseY / canvas.clientHeight - 0.5 + this.state.offsetY
-          ];
+          let x = mouseX / canvas.clientWidth  + this.state.offsetX;
+          let y = mouseY / canvas.clientHeight + this.state.offsetY;
+          return [x - Math.round(x), y - Math.round(y)];
         };
           
         let canvasTapCount = 0;
@@ -129,8 +131,8 @@
         let canvas = this.$('canvas');
         if(canvas && (canvas.width != size)) {
           [canvas.width, canvas.height] =
-          [this.buffer.width, this.buffer.height] =
           [this.buffer2.width, this.buffer2.height] = [size, size];
+          [this.buffer.width, this.buffer.height] = [size*2, size*2];
           this.initializeRequired = true;
         }
 
@@ -150,16 +152,38 @@
         const palette = [...Array(n)].map((_, i) => colorFunc(i/n));
 
         // 粒子の描画
-        let size = document.getElementById('particle-size').value;
+        let size = this.calcParticleSize();
         const r = size / canvas.width / 2;
+
+        g.globalCompositeOperation = "screen"
+
         world.particles.forEach( (sp, x, y) => {
-          g.beginPath();
-          g.fillStyle = palette[sp];
-          g.arc(x, y, r, 0, 2 * Math.PI);
-          g.fill();
+          const draw2 = (_x, _y) => {
+            g.beginPath();
+            g.fillStyle = palette[sp];
+            g.arc(_x, _y, r, 0, 2 * Math.PI);
+            g.fill();
+          };
+          
+          const draw = (_x, _y) => {
+            draw2(_x, _y);
+            if(_y < -0.5 + r) draw2(_x, _y + 1);
+            if(_y > +0.5 - r) draw2(_x, _y - 1);
+          }
+
+          x += 0.5; x -= Math.round(x);
+          y += 0.5; y -= Math.round(y);
+          
+          draw(x, y);
+          if(x < -0.5 + r) draw(x + 1, y);
+          if(x > +0.5 - r) draw(x - 1, y);
         });
       },
 
+      // 粒子サイズは画面サイズ相対にしておく
+      calcParticleSize() {
+        return this.state.particleSize / 600 * this.$('canvas').width;
+      },
 
       // WebGL の初期化
 
@@ -229,8 +253,7 @@
         gl.enableVertexAttribArray(a_color);
 
         // Set the view port
-        const canvas = this.$("canvas");
-        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.viewport(0, 0, this.buffer.width, this.buffer.height);
 
         let u_texture = gl.getUniformLocation(gl.program, 'u_texture');
         gl.uniform1i(u_texture, 0);
@@ -278,7 +301,6 @@
         gl.bufferDataRequired = true;
       },
 
-
       // WebGL による描画
 
       render_gl(gl, world, colorFunc) {
@@ -287,9 +309,9 @@
         gl.clearColor(0, 0, 0, 0);  // 背景色は透明
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        let size = document.getElementById('particle-size').value;
+        let psize = this.calcParticleSize();
         let u_point_size = gl.getUniformLocation(gl.program, 'u_point_size');
-        gl.uniform1f(u_point_size, Number.parseFloat(size)+0.25);
+        gl.uniform1f(u_point_size, Number.parseFloat(psize)+0.25);
 
         let palette = [...Array(world.nspecies)].map((_, i) => {
             const c = colorFunc(i/world.nspecies);
@@ -297,12 +319,13 @@
           }
         );
 
+        const [vertices, nvertices] = world.particles.vertices(palette, psize/this.buffer.width);
         if(gl.bufferDataRequired) {
-          gl.bufferData(gl.ARRAY_BUFFER, world.particles.vertices(palette), gl.DYNAMIC_DRAW);
+          gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
         } else {
-          gl.bufferSubData(gl.ARRAY_BUFFER, 0, world.particles.vertices(palette));
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices);
         }
-        gl.drawArrays(gl.POINTS, 0, world.nparticles);
+        gl.drawArrays(gl.POINTS, 0, nvertices);
       },
 
 
@@ -391,8 +414,11 @@
 
           this.render_gl(gl, world, colorFunc);
 
-          g2.globalCompositeOperation = "source-over"
-          g2.drawImage(this.buffer, 0, 0);
+          g2.globalCompositeOperation = "source-over";
+          let size = this.buffer2.width;
+          g2.drawImage(this.buffer, 
+              size/2, size/2, size, size, // source
+              0, 0, size, size);          // dest
         }
 
         const canvas = this.$("canvas");

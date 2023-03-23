@@ -58,15 +58,26 @@ async function main() {
         [4/4, 255, 255,   0 ],
       ]);
 
+  const controls = riot.mount('plcontrols', 
+          {recommendations: await (await fetch('recommendations.json')).json()})[0];
+
+  controls.addEventListener("update", (e) => {
+    if(world) world.update(e.detail);
+    colorScaleEditor.update(e.detail.paletteSetting);
+    display.update({tail: e.detail.tail, screen: e.detail.screen, particleSize: e.detail.particleSize});
+    renderer.maxFps = e.detail.maxfps;
+    document.querySelector('color-scale-editor').style.display = e.detail.showPalette ? 'block' : 'none';
+  });
+
   colorScaleEditor.addEventListener("update", e => {
     colorFunc = e.detail;
     int_editor.update();
     display.render();
+    if(!colorScaleEditor.state.mouseDown) {
+      controls.state.paletteSetting = colorScaleEditor.state;
+      controls.updateURL();
+    }
   });
-  colorScaleEditor.update();
-  
-  const controls = riot.mount('plcontrols', 
-          {recommendations: await (await fetch('recommendations.json')).json()})[0];
 
   const fps = document.getElementById('fps');
   const render = ()=> {
@@ -78,14 +89,8 @@ async function main() {
   }
   const renderer = new CanvasRenderer(display.$('canvas'), render, exportVid);
 
-  controls.addEventListener("update", (e) => {
-    if(world) world.update(e.detail);
-    display.update({tail: e.detail.tail, screen: e.detail.screen});
-    renderer.maxFps = e.detail.maxfps;
-    document.querySelector('color-scale-editor').style.display = e.detail.showPalette ? 'block' : 'none';
-  });
-
   controls.update();
+  colorScaleEditor.update();
 
   const createWorld = () => {
     options = controls.state;

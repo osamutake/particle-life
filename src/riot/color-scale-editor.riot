@@ -95,6 +95,7 @@
           iscale: 0,
           offset: 0,
           scale:  1,
+          mouseDown: false,
         }
         this.update()
         
@@ -103,6 +104,7 @@
         this.defineDragBehavior(canvas, {
           down: (e, x, y) => {
             e.preventDefault()
+            this.state.mouseDown = true;
           },
           move: (e, mouseDown, newX, newY, oldX, oldY) => {
             if(!mouseDown) return;
@@ -113,6 +115,9 @@
             this.state.offset -= dx / canvas.clientWidth / this.state.scale / 2
             this.update()
           },
+          up: (e, x, y) => {
+            this.update({mouseDown: false});
+          },
         }) 
       },
 
@@ -120,16 +125,24 @@
 
       onBeforeUpdate(props, state) {
         // 適切な範囲に直す
+        if(isNaN(state.iscale)) state.iscale = 0;
         state.iscale = (state.iscale + this.props.colorScaleList.length) % this.props.colorScaleList.length;
-        state.offset -= Math.floor(state.offset); 
-        state.scale = Math.min(100, Math.max(1, state.scale));
+
+        if(isNaN(state.offset)) state.offset = 0;
+        state.offset -= Math.floor(state.offset); // limit in [0, 1)
+        
+        if(isNaN(state.scale)) state.scale = 1;
+        state.scale = Math.min(17*255/256, Math.max(1, state.scale));
       },
 
       onUpdated(props, state) {
-        // 描画する
+        // 描画する (factor と offset は量子化しておく)
         const scale = this.props.colorScaleList[state.iscale];
+        const factor = 1 / (1 + Math.round((state.scale-1) * 16) / 16);
+        const offset = Math.round(state.offset * 256) / 256;
+
         const x2color = (x) => {
-          x = x / state.scale + state.offset;
+          x = factor * x + offset;
           return scale.color(x - Math.floor(x));
         }
 
