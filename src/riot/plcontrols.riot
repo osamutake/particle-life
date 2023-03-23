@@ -42,7 +42,7 @@ p<!-----------------------------------------------------------------
       <label for="interact_seed" class="label">描画制御</label>
       <div class="field has-addons">
         <p class="control">
-          <button class="button" onclick={ ()=> dispatchEvent("restart", state) }>
+          <button class="button" onclick={ ()=> dispatchEvent("restart", state) } id="replay">
             <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
           </button>
         </p>
@@ -87,6 +87,14 @@ p<!-----------------------------------------------------------------
       <label for="maxfps" class="label">最大fps</label>
       <div class="control">
         <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label class="label">使い方</label>
+      <div class="control">
+        <button class="button is-info" onclick={ ()=> document.querySelector('help-popup').show() }>
+          <span class="icon is-small"><ion-icon name="help"></ion-icon></span>
+        </button>
       </div>
     </div>
   </div>
@@ -190,6 +198,9 @@ p<!-----------------------------------------------------------------
       display: flex;
       max-width: var(--100vw);
       flex-wrap: wrap;
+      @media screen and (min-width: 420px) and (max-width: 640px) {
+        padding-left: 0.5em;
+      }
     }
     .is-narrow {
       flex: none;

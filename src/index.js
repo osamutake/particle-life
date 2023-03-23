@@ -33,7 +33,7 @@ async function main() {
   measureWindowSize();
   
   // コンポーネントを構成する
-    
+
   let world;
   let colorFunc = null;
   
@@ -171,6 +171,26 @@ async function main() {
     }
   });
   document.getElementById("world-editor").style.display = "none";
+  
+  document.getElementById("copy-url").addEventListener("click", ()=> {
+    navigator.clipboard.writeText(location.href);
+    setTimeout(
+      ()=> document.getElementById("copy-url-message").style.display = "block",
+      100
+    );
+    setTimeout(
+      ()=> document.getElementById("copy-url-message").style.display = "none",
+      1600
+    );
+  });
+  document.getElementById("copy-url-message").style.display = "none";
+
+  const helpPopup = riot.mount("help-popup")[0];
+  let help = "";
+  helpPopup.messages.forEach( (message) => {
+    help += "<li>" + message[0] + "</li>";
+  });
+  const helpList = document.getElementById("help-list").innerHTML = help;
 }
 
 window.addEventListener('load', () => {

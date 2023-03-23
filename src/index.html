@@ -8,7 +8,7 @@
     <meta name="twitter:site" content="@osamu_takeuchi" />
     <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/" />
     <meta property="og:title" content="Particle Life | 武内＠筑波大" />
-    <meta property="og:description" content="粒子に命が宿る世界を覗き見るサイトです(?)" />
+    <meta property="og:description" content="粒子に命が宿る世界をのんびり眺めるサイトです。飽きたら「次のワールドを生成」を押してください。" />
     <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/og_image.png" />
 
     <link rel="apple-touch-icon" sizes="57x57" href="./favicon/apple-icon-57x57.png">
@@ -43,17 +43,24 @@
     <div class="container">
       <h1 class="title is-3">Particle Life</h1>
 
-      <p>粒子に命が宿る世界を覗き見るサイトです(?)</p>
+      <p>粒子に命が宿る世界をのんびり眺めるサイトです。飽きたら「次のワールドを生成」を押してください。</p>
       <br>
       <div class="columns is-desktop">
-        <div class="column is-narrow" style="line-height:1">
-        <particles-display width="600" height="600"></particles-display><br>
-        <color-scale-editor width="600" height="40"></color-scale-editor>
-        <div style="margin-bottom:4px;margin-top:4px">
-          <a class="button is-info is-small" id="new-world">新しいワールドを生成</a>
-          <a class="button is-info is-small" onClick="navigator.clipboard.writeText(location.href)">URLをコピー</a>
-          <span id="fps" style="vertical-align:bottom;margin-left:20px"></span>
-        </div>
+        <div class="column is-narrow" style="line-height:1;position:relative;">
+          <help-popup></help-popup>
+          <particles-display width="600" height="600"></particles-display><br>
+          <color-scale-editor width="600" height="40"></color-scale-editor>
+          <div class="top-buttons">
+            <a class="button is-info is-small" id="new-world">次のワールドを生成</a>
+            <a class="button is-info is-small" id="copy-url">このワールドをシェア&nbsp;&nbsp;&nbsp;
+                <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
+            <div class="block" id="copy-url-message">
+              <span class="tag is-success">
+                このワールドへの URL をコピーしました
+              </span>
+            </div>
+            <span id="fps" style="vertical-align:top;margin-left:10px"></span>
+          </div>
         </div>
         <div class="column is-narrow" id="world-editor">
           <interaction-editor width="600"></interaction-editor>
@@ -69,6 +76,26 @@
             padding: 0.5rem;
           }
         }
+        .top-buttons {
+          position: relative;
+          margin-bottom:4px;
+          margin-top:4px;
+          overflow-x: clip;
+          max-width: var(--100vw);
+          white-space: nowrap;
+        }
+        @media screen and (max-width: 420px) {
+          .top-buttons {
+            margin-left: -1rem;
+          }
+        }
+        #copy-url-message {
+          display: block;
+          position: absolute;
+          top: -40px;
+          left: 70px;
+          
+        }
       </style>
 
       <div class="columns">
@@ -78,14 +105,7 @@
       <div id="video"></div>
 
       <div class="content">
-      <ul>
-        <li>[新しいワールドを生成] を押すたびに異なる世界に移れます
-        <li>[ワールド設定] でお勧めの設定を選んだら何度か押してみてください
-        <li>[URLをコピー] で「今いる世界の URL」をコピーできます
-        <li>[描画制御] の <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span> で現在の世界をリプレイできます
-        <li>[画面] は XS がスマホ用、S 以上が PC 用です
-        <li>ダブルクリック/タップで指を突っ込めます
-        <li>カラースケール上下左右にいじると色が変わります
+      <ul id="help-list">
       </ul>
       </div>
       
