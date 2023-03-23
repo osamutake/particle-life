@@ -33,7 +33,7 @@ p<!-----------------------------------------------------------------
       <label for="recommendation" class="label">ワールド設定</label>
       <div class="select">
         <select id="recommendation" value="" onchange={ recommendationChange }>
-          <option value="" >URL指定</option>
+          <option value="" >URLで</option>
           <option  each={ recommendation in recommendations } key={recommendation[1]} value={recommendation[1]}>{recommendation[0]}</option>
         </select>
       </div>
@@ -67,27 +67,27 @@ p<!-----------------------------------------------------------------
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="particleSize" class="label">粒子サイズ</label>
+      <label for="particleSize" class="label">粒径</label>
       <div class="control">
-        <input class="input" id="particleSize" type="text"  value={state.particleSize} size="2" onchange={ editorChanged } /> 
+        <input class="input" id="particleSize" type="text"  value={state.particleSize} size="1" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="screen" class="label">画面</label>
+      <label for="screen" class="label">画面 &nbsp; <span class="icon is-clickable" onclick={ ()=> update({screen: "F"}) }><ion-icon name="expand"></ion-icon></span></label>
       <div class="select">
         <select id="screen" value={state.screen} onchange={ editorChanged }>
           <option value="XS">XS</option>
           <option value="S">S</option>
           <option value="M">M</option>
           <option value="L">L</option>
-          <option value="Full">Full</option>
+          <option value="F">Full</option>
         </select>
       </div>
     </div>
     <div class="column is-narrow field">
       <label for="maxfps" class="label">最大fps</label>
       <div class="control">
-        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="2" onchange={ editorChanged } /> 
+        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="1" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -207,6 +207,9 @@ p<!-----------------------------------------------------------------
       flex: none;
       width: unset;
     }
+    .column.is-narrow.field {
+      padding: 0.5rem;
+    }
   </style>
 
   <script>
@@ -249,6 +252,7 @@ p<!-----------------------------------------------------------------
         canvas.addEventListener('fullscreenchange', (e) => {
           if(!document.fullscreenElement) {
             // フルスクリーンが終了した
+            document.removeEventListener('keydown', this.keydownWhileFullScreen);
             this.state.screen = this.lastScreen;
             this.update();
           }
@@ -363,10 +367,26 @@ p<!-----------------------------------------------------------------
       onUpdated(props, state) {
           this.dispatchEvent("update", this.state);
 
-          if(state.screen == "Full") {
-            this.lastScreen = this.lastState.screen;
+          if(state.screen == "F") {
+            this.lastScreen = !this.lastState ? "S" :
+                              this.lastState.screen == "F" ? (this.lastScreen || "S") : this.lastState.screen;
             const canvas = document.getElementById("particles-display");
             canvas.requestFullscreen();
+            if(!this.keydownWhileFullScreen) {
+              this.keydownWhileFullScreen = (e) => {
+                if(e.key == 'n' || e.key == 'N') {
+                  this.update({ 
+                    interact_seed: 2**53 * Math.random(),
+                    world_seed: 2**53 * Math.random()
+                  });
+                  this.dispatchEvent("restart", this.state);
+                } else
+                if(e.key == ' ') {
+                  this.$('#pause').click();
+                }
+              };
+            }
+            document.addEventListener('keydown', this.keydownWhileFullScreen);
           }
 
           // 直前の設定を取っておく
@@ -457,7 +477,7 @@ p<!-----------------------------------------------------------------
         }
 
         // スクリーンサイズ
-        match = /^(XS|S|M|L)(.+)/.exec(result.nspecies);
+        match = /^(XS|S|M|L|F)(.+)/.exec(result.nspecies);
         if(match) {
           result.screen = match[1];
           result.nspecies = match[2];

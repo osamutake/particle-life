@@ -124,11 +124,11 @@
 
       onUpdated(props, state) {
         const screens = {
-          XS: 400, S: 600, M: 900, L: 1200, XL: 1500, Full: 0
+          XS: 400, S: 600, M: 900, L: 1200, XL: 1500, F: 0
         }
         
         let size = screens[this.state.screen]
-        if(this.state.screen == "Full") {
+        if(this.state.screen == "F") {
            size = Math.min(window.screen.width, window.screen.height);
         }
         
