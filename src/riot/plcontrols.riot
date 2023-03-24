@@ -42,25 +42,25 @@ p<!-----------------------------------------------------------------
       <label for="interact_seed" class="label">描画制御</label>
       <div class="field has-addons">
         <p class="control">
-          <button class="button" onclick={ ()=> dispatchEvent("restart", state) } id="replay">
+          <button class="button" onclick={ ()=> dispatchEvent("restart", state) } id="replay" title="始めに戻ってリプレイ">
             <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="pause" class={ state.pause ? "button is-danger" : "button" }
-                  onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } }>
+                  onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } } title="ポーズ／再開">
             <span class="icon is-small"><ion-icon name={ state.pause ? "play" : "pause" }></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="recording" class={ state.recording ? "button is-danger" : "button" } 
-                  onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } }>
+                  onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } } title="webm に録画">
             <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="palette" class={ state.showPalette ? "button is-dark" : "button" } 
-                  onclick={ ()=>{ update({"showPalette": !state.showPalette }) } }>
+                  onclick={ ()=>{ update({"showPalette": !state.showPalette }) } } title="カラーパレット編集">
             <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span>
           </button>
         </p>

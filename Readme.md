@@ -73,6 +73,10 @@ $ npm test
 --
 このプロジェクトは [シャポコ🌵 (@shapoco)](https://twitter.com/shapoco) さんの開発された [Particle Life \| シャポ庫](https://www.shapoco.net/particlelife/) （の初期バージョン）を改変する形で始まりました。非常に面白い題材をとっつきやすい形で紹介して下さったことに大変感謝しています。
 
+制限事項
+--
+Firefox では WebGL canvas をソースとする drawImage に非常識なほど時間がかかるため、特に画像サイズが大きい時はフレームレートがガタ落ちします。
+
 Change Log
 --
 - 2023-03-15 v0.3.0
