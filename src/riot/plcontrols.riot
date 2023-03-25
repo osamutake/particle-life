@@ -69,7 +69,7 @@ p<!-----------------------------------------------------------------
     <div class="column is-narrow field">
       <label for="particleSize" class="label">粒径</label>
       <div class="control">
-        <input class="input" id="particleSize" type="text"  value={state.particleSize} size="1" onchange={ editorChanged } /> 
+        <input class="input" id="particleSize" type="number"  value={state.particleSize} size="1" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -87,7 +87,7 @@ p<!-----------------------------------------------------------------
     <div class="column is-narrow field">
       <label for="maxfps" class="label">最大fps</label>
       <div class="control">
-        <input class="input" id="maxfps" type="text"  value={state.maxfps} size="1" onchange={ editorChanged } /> 
+        <input class="input" id="maxfps" type="number"  value={state.maxfps} size="1" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -116,7 +116,7 @@ p<!-----------------------------------------------------------------
       <label for="interact_seed" class="label">相互作用シード</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="interact_seed" type="text" value={ state.interact_seed } size="8">
+          <input class="input" id="interact_seed" type="number" value={ state.interact_seed } size="8">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateInteractionSeed }>
@@ -129,7 +129,7 @@ p<!-----------------------------------------------------------------
       <label for="world_seed" class="label">粒子配置シード</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="world_seed" type="text" value={ state.world_seed } size="8">
+          <input class="input" id="world_seed" type="number" value={ state.world_seed } size="8">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateWorldSeed }>
@@ -143,31 +143,31 @@ p<!-----------------------------------------------------------------
     <div class="column is-narrow field">
       <label for="nspecies" class="label">粒子種数</label>
       <div class="control">
-        <input class="input" id="nspecies" type="text" value={state.nspecies} size="2" onchange={ editorChanged } />
+        <input class="input" id="nspecies" type="number" value={state.nspecies} size="2" onchange={ editorChanged } />
       </div>
     </div>
     <div class="column is-narrow field">
       <label for="nparticles" class="label">√粒子数</label>
       <div class="control">
-        <input class="input" id="nlattice" type="text" value={state.nlattice} size="2" onchange={ editorChanged } />
+        <input class="input" id="nlattice" type="number" value={state.nlattice} size="2" onchange={ editorChanged } />
       </div>
     </div>
     <div class="column is-narrow field">
       <label for="scale" class="label">スケール</label>
       <div class="control">
-        <input class="input" id="scale" type="text"  value={state.scale} size="2" onchange={ editorChanged } />
+        <input class="input" id="scale" type="number"  value={state.scale} size="2" onchange={ editorChanged } />
       </div>
     </div>
     <div class="column is-narrow field">
       <label for="step" class="label">計算ステップ</label>
       <div class="control">
-        <input class="input" id="step" type="text"  value={state.step} size="2" onchange={ editorChanged } /> 
+        <input class="input" id="step" type="number"  value={state.step} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
       <label for="tail" class="label">尾の長さ</label>
       <div class="control">
-        <input class="input" id="tail" type="text"  value={state.tail} size="2" onchange={ editorChanged } /> 
+        <input class="input" id="tail" type="number"  value={state.tail} size="2" onchange={ editorChanged } /> 
       </div>
     </div>
     <div class="column is-narrow field">
