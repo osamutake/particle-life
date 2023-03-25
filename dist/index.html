@@ -8,7 +8,7 @@
     <meta name="twitter:site" content="@osamu_takeuchi" />
     <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/" />
     <meta property="og:title" content="Particle Life | 武内＠筑波大" />
-    <meta property="og:description" content="粒子に命が宿る世界をのんびり眺めるサイトです。飽きたら「次のワールドを生成」を押してください。" />
+    <meta property="og:description" content="粒子の世界を覗く。飽きたら「次のワールドを生成」を押してください。" />
     <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/og_image.png" />
 
     <link rel="apple-touch-icon" sizes="57x57" href="./favicon/apple-icon-57x57.png">
@@ -44,7 +44,7 @@
       <h1 class="title is-3">Particle Life</h1>
 
       <p>粒子に命が宿る世界をのんびり眺めるサイトです。<br>飽きたら「次のワールドを生成」を押してください。</p>
-      <br>
+      <div style="text-align:right;max-width:600px"><span id="fps" style="vertical-align:top;margin-left:10px"></span></div>
       <div class="columns is-desktop">
         <div class="column is-narrow" style="line-height:1;position:relative;">
           <help-popup></help-popup>
@@ -59,7 +59,12 @@
                 このワールドへの URL をコピーしました
               </span>
             </div>
-            <span id="fps" style="vertical-align:top;margin-left:10px"></span>
+            <a class="button is-info is-small" id="full-screen">全画面 &nbsp; <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
+            <div class="block" id="full-screen-message" style="position:absolute;top: -50px;left: 30px;">
+              <span class="tag is-success">
+                画面外のダブルタップで次のワールドを生成できます
+              </span>
+            </div>
           </div>
         </div>
         <div class="column is-narrow" id="world-editor">

@@ -135,6 +135,10 @@ async function main() {
   }
   
   restart();
+
+  display.addEventListener('restart', () => {
+    restart(true);
+  });
   
   controls.addEventListener("pause", (e) => {
     if(e.detail.pause) {
@@ -171,7 +175,18 @@ async function main() {
     }
   });
   document.getElementById("world-editor").style.display = "none";
-  
+
+  document.getElementById("full-screen").addEventListener("click", ()=> {
+    setTimeout(()=> {
+      document.getElementById("full-screen-message").style.display = "block"
+      setTimeout(()=> {
+          document.getElementById("full-screen-message").style.display = "none";
+          controls.update({screen: 'F'}); 
+      }, 2500);
+    }, 100);
+  });
+  document.getElementById("full-screen-message").style.display = "none";
+
   document.getElementById("copy-url").addEventListener("click", ()=> {
     navigator.clipboard.writeText(location.href);
     setTimeout(

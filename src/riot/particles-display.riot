@@ -61,11 +61,25 @@
       },
 
       onMounted() {
+        util.implementEventTarget(this);
+
         // マウス座標から x, y 座標 [-0.5, 0.5) に直す
         const mouse2xy = (mouseX, mouseY) => {
-          const x = mouseX / canvas.clientWidth  + this.state.offsetX;
-          const y = mouseY / canvas.clientHeight + this.state.offsetY;
+          const size = Math.min(canvas.clientWidth, canvas.clientHeight);
+          const ox = (canvas.clientWidth - size) / 2;
+          const oy = (canvas.clientHeight - size) / 2;
+          const x = (mouseX - ox) / size + this.state.offsetX;
+          const y = (mouseY - oy) / size + this.state.offsetY;
           return [x - Math.round(x), y - Math.round(y)];
+        };
+          
+        const mouse2xyIn = (mouseX, mouseY) => {
+          const size = Math.min(canvas.clientWidth, canvas.clientHeight);
+          const ox = (canvas.clientWidth - size) / 2;
+          const oy = (canvas.clientHeight - size) / 2;
+          const x = (mouseX - ox) / size;
+          const y = (mouseY - oy) / size;
+          return 0 < x && x < 1 && 0 < y && y < 1;
         };
           
         const canvas = this.$("#particles-display");
@@ -78,6 +92,10 @@
               setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
             } else {                    // ダブルタップ
               canvasTapCount = 0 ;
+              if(!mouse2xyIn(x,y)){
+                this.dispatchEvent('restart');
+                return;
+              }
               mouseDoubleDown = true;
               [this.state.repelX, this.state.repelY] = mouse2xy(x, y)
             }
@@ -86,9 +104,10 @@
             if(mouseDown) {
               if(!mouseDoubleDown) {    // スクロールする
                 const [dx, dy] = [newX - oldX, newY - oldY];
-                this.state.offsetX -= dx / canvas.width; 
+                const size = Math.min(canvas.clientWidth, canvas.clientHeight);
+                this.state.offsetX -= dx / size; 
                 this.state.offsetX -= Math.round(this.state.offsetX);
-                this.state.offsetY -= dy / canvas.height; 
+                this.state.offsetY -= dy / size; 
                 this.state.offsetY -= Math.round(this.state.offsetY);
                 this.render();
               } else {                  // 斥力
@@ -113,8 +132,15 @@
         this.state.size = screens[this.state.screen]
         if(this.state.screen == "F") {
           this.state.size = Math.min(window.screen.width, window.screen.height);
-//          [canvas.width, canvas.height] = [window.screen.width, window.screen.height]
-          [canvas.width, canvas.height] = [this.state.size, this.state.size]
+          [canvas.width, canvas.height] = [window.screen.width, window.screen.height]
+          const checkWebgl = document.getElementById('webgl');
+          if(!checkWebgl.checked) // webgl が使えないときは正方形のままで
+            [canvas.width, canvas.height] = [this.state.size, this.state.size]
+          if(this.state.size < 500){
+            this.state.size *= 2;
+            canvas.width *= 2;
+            canvas.height *= 2;
+          }
         } else {
           [canvas.width, canvas.height] = [this.state.size, this.state.size]
         }
@@ -182,7 +208,9 @@
 
       // 粒子サイズは画面サイズ相対にしておく
       calcParticleSize() {
-        return this.state.particleSize / 600 * this.$('canvas').width;
+        const canvas = this.$('canvas');
+        const size = Math.min(canvas.width, canvas.height);
+        return this.state.particleSize / 600 * size;
       },
 
       // 粒子表示クラス
@@ -463,10 +491,16 @@
             uniform vec2 u_offset;
             void main(void){
               // ここで uv から gl_FragColor を求める
-              vec2 uv = gl_FragCoord.xy / u_size + u_offset;
+              float size = min(u_size.x, u_size.y);
+              vec2 of = (u_size - size) / 2.0;
+              vec2 uv = (gl_FragCoord.xy - of) / size + u_offset;
               uv.x -= floor(uv.x);
               uv.y -= floor(uv.y);
               gl_FragColor = texture2D(u_texture, uv);
+              vec2 test = gl_FragCoord.xy - of;
+              if(test.x < 0.0 || test.y < 0.0) gl_FragColor.rgb /= 2.0;
+              test = gl_FragCoord.xy -size - of;
+              if(test.x > 0.0 || test.y > 0.0) gl_FragColor.rgb /= 2.0;
             }
           `;
           this.frameRendererOffset = new util.glTextureRenderer(gl, fsrcOffset, 
@@ -484,7 +518,7 @@
         }
 
         this.rendererGL.render(
-          0, canvas.width, canvas.height,
+          0, this.state.size, this.state.size,
           world, colorFunc, this.calcParticleSize(),
           this.frameBuffer1
         );
@@ -495,9 +529,9 @@
         this.frameRendererTail.render(1, this.frameBuffer1.texture, (gl, program)=> {
           gl.disable(gl.BLEND);
           gl.disable(gl.DEPTH_TEST);
-          gl.viewport(0,0,canvas.width,canvas.height);
+          gl.viewport(0,0, this.state.size, this.state.size);
           program.u_tail.f(tail);
-          program.u_size.f(canvas.width, canvas.height);
+          program.u_size.f(this.state.size, this.state.size);
           program.u_time.i(this.count);
           program.u_texture2.i(2);
           gl.activeTexture(gl.TEXTURE2);
