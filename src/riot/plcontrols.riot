@@ -418,7 +418,7 @@ p<!-----------------------------------------------------------------
       },
 
       encodeParameters(state = this.state) {
-        let search = '?' + (state.screen != 'S' ? state.screen : '');
+        let search = '?'; //  + (state.screen != 'S' ? state.screen : ''); 保存しないことにした
         search += state.nspecies + "_" + state.nlattice;
         search += "_" + state.interact_seed + state.intset + "_" + state.world_seed;
         search += state.perterb  ? "" : "n";
@@ -482,8 +482,7 @@ p<!-----------------------------------------------------------------
           result.screen = match[1];
           result.nspecies = match[2];
         }
-        if (result.screen == "XS")
-          result.screen = "S"
+        result.screen = "S";  // 無視する
         
         // 大文字のアルファベットは相互作用セットの指定
         if(/[A-Z]/.test(result.interact_seed.slice(-1))) {
