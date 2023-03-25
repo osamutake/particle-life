@@ -177,13 +177,11 @@ async function main() {
   document.getElementById("world-editor").style.display = "none";
 
   document.getElementById("full-screen").addEventListener("click", ()=> {
+    document.getElementById("full-screen-message").style.display = "block"
     setTimeout(()=> {
-      document.getElementById("full-screen-message").style.display = "block"
-      setTimeout(()=> {
-          document.getElementById("full-screen-message").style.display = "none";
-          controls.update({screen: 'F'}); 
-      }, 2500);
-    }, 100);
+        document.getElementById("full-screen-message").style.display = "none";
+        controls.update({screen: 'F'}); 
+    }, 1000);
   });
   document.getElementById("full-screen-message").style.display = "none";
 

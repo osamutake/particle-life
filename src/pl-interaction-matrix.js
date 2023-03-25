@@ -16,10 +16,22 @@ export class PLInteractionMatrix {
   
   update(world) {
     this.world = world;
-    this.matrix = 
-      [...Array(world.nspecies)].map(() =>
-        [...Array(world.nspecies)].map(()=> 
-          [0, 0] ))
+    if(!this.matrix) {
+      this.matrix = 
+        [...Array(world.nspecies)].map(() =>
+          [...Array(world.nspecies)].map(()=> 
+            [0, 0] ))
+    } else 
+    if(this.matrix.length != world.nspecies){
+      this.matrix = 
+        [...Array(world.nspecies)].map((_,i) =>
+          [...Array(world.nspecies)].map((_,j)=> 
+            i < this.matrix.length && j < this.matrix.length 
+              ? this.matrix[i][j] 
+              : [0, 0]
+          )
+        );
+    }
 
     // ３つの値を 粒子種数 x 粒子種数 x 2 個 格納する
     let len = 3 * world.nspecies * world.nspecies * 2;

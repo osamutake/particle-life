@@ -69,7 +69,7 @@ p<!-----------------------------------------------------------------
     <div class="column is-narrow field">
       <label for="particleSize" class="label">粒径</label>
       <div class="control">
-        <input class="input" id="particleSize" type="number"  value={state.particleSize} size="1" onchange={ editorChanged } /> 
+        <input class="input" id="particleSize" type="number"  value={state.particleSize} size="3" onchange={ editorChanged } min="0" step="0.5" max="127.5" /> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -87,7 +87,7 @@ p<!-----------------------------------------------------------------
     <div class="column is-narrow field">
       <label for="maxfps" class="label">最大fps</label>
       <div class="control">
-        <input class="input" id="maxfps" type="number"  value={state.maxfps} size="1" onchange={ editorChanged } /> 
+        <input class="input" id="maxfps" type="number"  value={state.maxfps} size="3" onchange={ editorChanged } min="0" max="1000" step="10"/> 
       </div>
     </div>
     <div class="column is-narrow field">
@@ -100,7 +100,47 @@ p<!-----------------------------------------------------------------
     </div>
   </div>
   <div style={`display: ${ $('#recommendation').value=='?' ? 'block' : 'none' }`}>
-
+  <div class="columns">
+    <div class="column is-narrow field">
+      <label for="nspecies" class="label">粒子種数</label>
+      <div class="control">
+        <input class="input" id="nspecies" type="number" value={state.nspecies} size="2" onchange={ editorChanged } min="1" max="200" step="1" />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="nparticles" class="label">√粒子数</label>
+      <div class="control">
+        <input class="input" id="nlattice" type="number" value={state.nlattice} size="2" onchange={ editorChanged } min="5" max="300" step="10" />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="scale" class="label">スケール</label>
+      <div class="control">
+        <input class="input" id="scale" type="number"  value={state.scale} size="2" onchange={ editorChanged } min="0.5" step="0.2" max="20" />
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="step" class="label">計算ステップ</label>
+      <div class="control">
+        <input class="input" id="step" type="number"  value={state.step} size="2" onchange={ editorChanged } min="0" max="2" step="0.1" /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="tail" class="label">尾の長さ</label>
+      <div class="control">
+        <input class="input" id="tail" type="number"  value={state.tail} size="2" onchange={ editorChanged }  min="0" step={
+          state.tail < 15 ? 1 :
+          state.tail < 30 ? 2 : 10
+        } /> 
+      </div>
+    </div>
+    <div class="column is-narrow field">
+      <label for="perterb" class="label">揺動</label>
+      <div class="control">
+        <input id="perterb" type="checkbox" checked={state.perterb != 0} onchange={ editorChanged } /> 
+      </div>
+    </div>
+  </div>
   <div class="columns">
     <div class="column is-narrow field">
       <label for="intset" class="label">相互作用セット</label>
@@ -116,7 +156,7 @@ p<!-----------------------------------------------------------------
       <label for="interact_seed" class="label">相互作用シード</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="interact_seed" type="number" value={ state.interact_seed } size="8">
+          <input class="input" id="interact_seed" type="number" value={ state.interact_seed } onchange={ editorChanged } size="12" min="1">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateInteractionSeed }>
@@ -129,51 +169,13 @@ p<!-----------------------------------------------------------------
       <label for="world_seed" class="label">粒子配置シード</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="world_seed" type="number" value={ state.world_seed } size="8">
+          <input class="input" id="world_seed" type="number" value={ state.world_seed } onchange={ editorChanged } size="12" min="1">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateWorldSeed }>
             <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
           </a>
         </div>
-      </div>
-    </div>
-  </div>
-  <div class="columns">
-    <div class="column is-narrow field">
-      <label for="nspecies" class="label">粒子種数</label>
-      <div class="control">
-        <input class="input" id="nspecies" type="number" value={state.nspecies} size="2" onchange={ editorChanged } />
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="nparticles" class="label">√粒子数</label>
-      <div class="control">
-        <input class="input" id="nlattice" type="number" value={state.nlattice} size="2" onchange={ editorChanged } />
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="scale" class="label">スケール</label>
-      <div class="control">
-        <input class="input" id="scale" type="number"  value={state.scale} size="2" onchange={ editorChanged } />
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="step" class="label">計算ステップ</label>
-      <div class="control">
-        <input class="input" id="step" type="number"  value={state.step} size="2" onchange={ editorChanged } /> 
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="tail" class="label">尾の長さ</label>
-      <div class="control">
-        <input class="input" id="tail" type="number"  value={state.tail} size="2" onchange={ editorChanged } /> 
-      </div>
-    </div>
-    <div class="column is-narrow field">
-      <label for="perterb" class="label">揺動</label>
-      <div class="control">
-        <input id="perterb" type="checkbox" checked={state.perterb != 0} onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
@@ -320,7 +322,7 @@ p<!-----------------------------------------------------------------
         } else {
           this.update(Object.fromEntries([[id, value]]));
         }
-        if(["nspecies", "nlattice", "scale", "intset", "step"].includes(e.target.id))
+        if(["nspecies", "nlattice", "scale", "intset", "step", "world_seed", "interact_seed"].includes(e.target.id))
           this.dispatchEvent("restart", this.state);
       },
 
