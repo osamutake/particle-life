@@ -1,28 +1,46 @@
 <help-popup>
-  <div class="background" onclick={ close }></div>
-  <article class="message is-info" id="help-popup">
-    <div class="message-header">
-      使い方
-      <button class="delete" onclick={ close }></button>
-    </div>
-    <div class="message-body">
-      <p id="help-text"><raw html={ state.messages[state.i][0] }></raw></p>
-      <div class="arrow arrow-lb">ここ！</div>
-      <div class="buttons">
-        <button class="button" id="help-prev" onclick={()=> update({"i": state.i - 1})} if={ state.i !=0 }>
-        前へ</button>
-        <button class="button is-info" id="help-next" onclick={()=> update({"i": state.i + 1})}>
-        { state.i == state.n - 1 ? "閉じる" : "次へ" }</button>
+  <div>
+    <div class="background" onclick={ close }></div>
+    <article class="message is-info" id="help-popup">
+      <div class="message-header">
+        使い方
+        <button class="delete" onclick={ close }></button>
       </div>
-      <progress class="progress is-link" value={state.i+1} max={state.n} id="help-progress">{
-        Math.round(state.i/state.n*100)} %</progress>
+      <div class="message-body">
+        <p id="help-text"><raw html={ state.messages[state.i][0] }></raw></p>
+        <div class="arrow arrow-lb">ここ！</div>
+        <div class="buttons">
+          <button class="button" id="help-prev" onclick={()=> update({"i": state.i - 1})} if={ state.i !=0 }>
+          前へ</button>
+          <button class="button is-info" id="help-next" onclick={()=> update({"i": state.i + 1})}>
+          { state.i == state.n - 1 ? "閉じる" : "次へ" }</button>
+        </div>
+        <progress class="progress is-link" value={state.i+1} max={state.n} id="help-progress">{
+          Math.round(state.i/state.n*100)} %</progress>
+      </div>
     </div>
+    </article>
+    <slot messages={messages} />
   </div>
-  </article>
 
   <style type="scss">
     :host {
-      display: none;
+      .background {
+        display: none;
+      }
+      #help-popup {
+        display: none;
+      }
+
+      &.shown {
+        .background {
+          display: block;
+        }
+        
+        #help-popup {
+          display: block;
+        }
+      }
       .buttons {
         display: flex;
         justify-content: flex-end;
@@ -46,7 +64,7 @@
         left: 5vw;
         width: 550px;
         max-width: calc(var(--100vw) - 10vw);
-        top: 40px;
+        top: 160px;
       }
       #help-text {
         line-height: 1.5;
@@ -69,6 +87,7 @@
         background-color: #9c0;
         font-weight: bold;
         z-index: 10;
+        margin-top: -10px;
       }
       .arrow::after {
         display: block;
@@ -79,7 +98,7 @@
         border-bottom: 15px solid #9c0;
         border-right: 15px solid #9c0;
         transform: rotate(45deg);
-        top: 25px;
+        top: 35px;
         left: 10px;
         content: "";
       }
@@ -95,31 +114,25 @@
       },
 
       onMounted() {
-        this.root.show = ()=> this.show();
-
         this.update();
       },
 
-      setupHelpDisplay(targetId) {
-        const target = document.getElementById(targetId)
-        let help = "";
-        this.state.messages.forEach( (message) => {
-          help += "<li>" + message[0].split(/<br>[\s\n]*<br>/).join("</li><li>") + "</li>";
-        });
-        target.innerHTML = help;
-      },
-      
       onBeforeUpdate(props, state) {
+        props.intf.show = ()=> this.show();
         if(state.messages != props.messages) {
           this.state.messages = props.messages;
           this.state.n = props.messages.length;
           this.state.i = 0;
-
-          if(props.helpDisplayTarget)
-            this.setupHelpDisplay(props.helpDisplayTarget);
         }
         if(state.i >= state.n) this.close();
-        if(state.i <  0      ) state.i = 0;
+        if(state.i <  0      ) this.state.i = 0;
+
+        this.messages = [];
+        this.state.messages.forEach( (message) =>
+          message[0].split(/<br>[\s\n]*<br>/).forEach( (message) => {
+            this.messages.push(message);
+          })
+        );
       },
       
       show() {
@@ -145,7 +158,7 @@
           document.addEventListener('keydown', this.keydown);
         }
         
-        this.root.style.display = "block";
+        this.root.classList.add("shown");
         this.state.i = 0;
         this.update();
       },
@@ -154,7 +167,7 @@
         document.removeEventListener('keydown', this.keydown);
         this.keydown = null;
 
-        this.root.style.display = "none";
+        this.root.classList.remove("shown");
         this.state.i = 0;
       },
       

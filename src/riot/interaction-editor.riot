@@ -80,7 +80,7 @@
           colorFunc : null
         }
 
-        props.intf.update = (...args) => this.update(...args);
+        this.props.intf.update = (...args) => this.update(...args);
       },
 
       onMounted() {
@@ -178,7 +178,8 @@
       },
 
       render_matrix() {
-        if(!this.state.world) return;
+        if(!this.state.world || !this.state.colorFunc) return;
+        if(this.state.world.recreating) return;
       
         const n = this.state.world.nspecies;
 
@@ -210,7 +211,7 @@
           g.fillStyle = "#3c3";
           g.fillRect(0.7, 1.1 + i + (1-dist.distribution[i]/dist_max)*0.9, 0.2, dist.distribution[i]/dist_max*0.9);
 
-          const color = this.props.intColorFunc;
+          const color = this.props.intf.intColorFunc;
           for(let j = 0; j < n; j++) {
             let [a, b] = this.state.world.interaction.get(i, j);
             if(i==j) {
@@ -230,7 +231,7 @@
       },
 
       render_scale() {
-        const color = this.props.intColorFunc;
+        const color = this.props.intf.intColorFunc;
         const g = this.$("#scale").getContext("2d");
         for(let i = 0; i < 200; i++) {
           g.fillStyle = color(i/200);

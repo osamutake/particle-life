@@ -6,16 +6,13 @@ debug-build: dist/particle-life.wasm dist/particle-life.js dist/index.html dist/
 
 .PHONY: test release-build clean
 
-test: dist/particle-life.wasm obj/riot_tags.js dist/recommendations.json
+test: dist/particle-life.wasm obj/riot_tags.js
 	mkdir -p spec/assets-generated
 	cp dist/particle-life.wasm spec/assets-generated/
 	cp obj/riot_tags.js spec/assets-generated/
 	npx jasmine-browser-runner serve
 
 dist/index.html: src/index.html
-	cp $< $@
-
-dist/recommendations.json: src/recommendations.json
 	cp $< $@
 
 dist/particle-life.wasm: src/particle-life.cpp
@@ -34,7 +31,6 @@ release-build:
 	$(RIOT) src/riot/tags.js -o obj/riot_tags.js -c config/riot.config.js
 	$(ESBUILD) src/index.js --bundle --outfile=dist/particle-life.js --minify-whitespace --minify-whitespace
 	cp src/index.html dist/index.html
-	cp src/recommendations.json dist/recommendations.json
 
 clean:
 	-rm dist/particle-life.wasm dist/particle-life.js obj/* spec/assets-generated/*

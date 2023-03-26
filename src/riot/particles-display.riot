@@ -71,7 +71,7 @@
         props.intf.render = (...args) =>
           this.render(...args);
 
-        props.intf.canvas = this.$('canvas')
+        props.intf.canvas = () => this.$('canvas');
       },
 
       onMounted() {
@@ -101,13 +101,14 @@
         let mouseDoubleDown = false;
         this.defineDragBehavior( canvas, {
           down: (e, x, y) => {
+            e.preventDefault();
             if( canvasTapCount == 0 ) { // シングルタップ
               canvasTapCount++;
               setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
             } else {                    // ダブルタップ
               canvasTapCount = 0 ;
               if(!mouse2xyIn(x,y)){
-                this.root.dispatchEvent(new CustomEvent('restart', { detail: null }));
+                this.props.onRestart();
                 return;
               }
               mouseDoubleDown = true;
@@ -116,6 +117,7 @@
           },
           move: (e, mouseDown, newX, newY, oldX, oldY) => {
             if(mouseDown) {
+              e.preventDefault();
               if(!mouseDoubleDown) {    // スクロールする
                 const [dx, dy] = [newX - oldX, newY - oldY];
                 const size = Math.min(canvas.clientWidth, canvas.clientHeight);
@@ -125,7 +127,7 @@
                 this.state.offsetY -= Math.round(this.state.offsetY);
                 this.render();
               } else {                  // 斥力
-              [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(newX, newY)
+                [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(newX, newY)
               }
             }
           },
@@ -135,6 +137,7 @@
           }
         });
 
+        this.update();
       },
 
       onUpdated(props, state) {
@@ -143,7 +146,7 @@
         }
         
         let canvas = this.$('canvas');
-        this.state.size = screens[this.state.screen]
+        this.state.size = screens[this.state.screen] || 600;
         if(this.state.screen == "F") {
           this.state.size = Math.min(window.screen.width, window.screen.height);
           [canvas.width, canvas.height] = [window.screen.width, window.screen.height]
@@ -376,9 +379,10 @@
       /// 描画する
       render() {
 
-        world = this.props.intf.world();
-        colorFunc = this.props.intf.colorFunc();
+        const world = this.props.intf.world();
+        const colorFunc = this.props.intf.colorFunc();
         if(!world || !colorFunc) return;
+        if(world.recreating) return;
 
         const canvas = this.$("canvas");
         

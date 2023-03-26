@@ -6,6 +6,10 @@
 
   <script>
     export default {
+      onBeforeMount(props) {
+        props.intf.setBlob = (blob, search) => this.update({blob: blob, search: search})
+      },
+
       onUpdated(props, state) {
         if(!this.state.blob) return;
         const vid = this.$('video');
@@ -13,14 +17,12 @@
         vid.controls = true;
 
         const a = this.$('a');
-        a.download = location.search.substr(1) + '.webm';
+        a.download = this.state.search.substr(1) + '.webm';
         a.href = vid.src;
 
         setTimeout(() => {
           // 少し待ってからじゃないと scroll to bottom がうまく行かない
-          var doc = document.documentElement;
-          var bottom = doc.scrollHeight - doc.clientHeight;
-          window.scroll(0, bottom);
+          this.root.scrollIntoView();
         }, 100);
       }
     }

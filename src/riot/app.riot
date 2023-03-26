@@ -1,58 +1,60 @@
 <app>
-  <div id="fps" style="text-align:right;max-width:600px">
-  </div>
+  <div id="fps" style="text-align:right;max-width:600px"></div>
   <div class="columns is-desktop">
     <div class="column is-narrow" style="line-height:1;position:relative;">
-      <help-popup></help-popup>
-      <particles-display width="600" height="600"></particles-display><br>
-      <color-scale-editor width="600" height="40"></color-scale-editor>
+      <particles-display width="600" height="600" on-restart={onDisplayRequestRestart} intf={displayIntf}></particles-display><br>
+      <color-scale-editor width="600" height="40" on-update={onColorScaleEditorUpdate} intf={colorScaleEditorIntf}></color-scale-editor>
       <div class="top-buttons">
-      <a class="button is-info is-small" id="new-world">次のワールドを生成</a>
-      <a class="button is-info is-small" id="copy-url">このワールドをシェア&nbsp;&nbsp;&nbsp;
-        <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
-      <div class="block" id="copy-url-message">
-        <span class="tag is-success">
-        このワールドへの URL をコピーしました
-        </span>
-      </div>
-      <a class="button is-info is-small" id="full-screen">全画面 &nbsp; <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
-      <div class="block" id="full-screen-message" style="position:absolute;top: -50px;left: 30px;">
-        <span class="tag is-success">
-        画面外のダブルタップで次のワールドを生成できます
-        </span>
-      </div>
+        <a class="button is-info is-small" id="new-world" onclick={onNewWorldClick}>
+            次のワールドを生成</a>
+        <a class="button is-info is-small" id="copy-url" onclick={onCopyUrlClick}>
+            このワールドをシェア&nbsp;&nbsp;&nbsp;
+            <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
+        <div class="block" id="copy-url-message">
+          <span class="tag is-success">
+            このワールドへの URL をコピーしました
+          </span>
+        </div>
+        <a class="button is-info is-small" id="full-screen" onclick={onFullScreenClick}>
+            全画面 &nbsp; 
+            <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
+        <div class="block" id="full-screen-message">
+          <span class="tag is-success">
+            画面外のダブルタップで次のワールドを生成できます
+          </span>
+        </div>
       </div>
     </div>
     <div class="column is-narrow" id="world-editor">
-      <interaction-editor width="600"></interaction-editor>
+      <interaction-editor width="600" 
+        intf={intEditorIntf}
+      ></interaction-editor>
     </div>
   </div>
+
   <div class="columns">
-    <plcontrols></plcontrols>
+    <plcontrols 
+      intf={controlsIntf}
+      on-show-editor={onShowEditorClick} 
+      on-record={onRecordClick} 
+      on-restart={onRestartFromControls}
+      on-pause={onPauseClick}
+      on-update={onControlsUpdate}
+      on-help={helpPopupIntf.show}
+    ></plcontrols>
   </div>
 
-  <div id="video"></div>
+  <video-holder intf={videoHolderIntf}></video-holder>
 
   <div class="content">
-    <ul id="help-list">
-    </ul>
+      <help-popup intf={helpPopupIntf} messages={helpContents}>
+        <ul>
+          <li each={message in messages}>{message}</li>
+        </ul>
+      </help-popup>
   </div>
 
-  <style>
-    body {
-      background: #d6e7f5;
-    }
-    h1.title.is-3 {
-      color: #485fc7;
-    }
-    @media screen and (max-width: 640px) {
-      .section {
-        padding: 1.5rem 1rem;
-      }
-      .column {
-        padding: 0.5rem;
-      }
-    }
+  <style type="scss">
     .top-buttons {
       position: relative;
       margin-bottom:4px;
@@ -60,10 +62,14 @@
       overflow-x: clip;
       max-width: var(--100vw);
       white-space: nowrap;
+      .button {
+        margin-right: 5px;
+      }
     }
     @media screen and (max-width: 420px) {
       .top-buttons {
-        margin-left: -1rem;
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
       }
     }
     #copy-url-message {
@@ -71,13 +77,226 @@
       position: absolute;
       top: -40px;
       left: 70px;
+      
+    }
+
+    #copy-url-message {
+      display: none;
+    }
+
+    #full-screen-message {
+      display: none;
+      position:absolute;
+      top: -50px;
+      left: 30px;
+    }
+
+    #world-editor {
+      display: none;
     }
   </style>
 
   <script>
+    import { CanvasRenderer } from '../canvas-renderer.js'
+    import { interactionSets } from '../interaction-sets.js'
+    import { ColorScale, colorScaleList } from "../color-scale.js"
+    import { ParticleLife } from '../particle-life.js'
+    import { XorShift128 } from '../xorshift128.js'
+    import helpContents from '../help-contents.js'
     export default {
+      onBeforeMount() {
+        // コンポーネントを構成する
+
+        this.world = null;
+        this.colorFunc = null;
+
+        this.helpContents = helpContents;
+
+        this.displayIntf = {
+          world: () => this.world,
+          colorFunc: () => this.colorFunc,
+          repelX: NaN,
+          repelY: NaN,
+          update: null,
+          render: null,
+          canvas: null
+        }
+
+        this.helpPopupIntf = {
+          show: null,
+          helpDisplayTarget: "help-list"
+        }
+        
+        this.colorScaleEditorIntf = {
+          update: null,
+          colorScaleList: colorScaleList,
+        }
+
+        this.intEditorIntf = {
+          update: null,
+          intColorFunc: (()=>{
+                const colorScale = new ColorScale([  // heat
+                  [0/4,   0, 255, 255 ],
+                  [1/4,   0,   0, 192 ],
+                  [2/4,   0,   0,   0 ],
+                  [3/4, 192,   0,   0 ],
+                  [4/4, 255, 255,   0 ],
+                ]);
+                return (x)=> colorScale.color(x);
+              })(),
+        }
+
+        this.controlsIntf = {
+          getWorldOptions: null,
+          updatePaletteSetting: null,
+          update: null,
+          getWorldURL: null,
+          recommendations: this.props.recommendations,
+        }
+
+        this.videoHolderIntf = {
+          setBlob: null
+        }
+      },
+
       onMounted() {
-      }
+        this.controlsIntf.update();
+        this.colorScaleEditorIntf.update();
+
+        this.renderer = new CanvasRenderer(
+          this.displayIntf.canvas(), 
+          this.render, 
+          (blob)=> this.videoHolderIntf.setBlob(blob, 
+              '?' + this.controlsIntf.getWorldURL().split('?')[1]) // search 部分
+        );
+
+        this.update();
+        this.restart();
+      },
+
+      displayFps(fps) {
+        const elemFps = document.getElementById('fps');
+        elemFps.innerText = `${String(fps).slice(0, 4)} fps`;
+      },
+
+      onControlsUpdate(e) {
+        if(this.world) this.world.update(e.detail);
+        this.colorScaleEditorIntf.update(e.detail.paletteSetting);
+        this.displayIntf.update({tail: e.detail.tail, screen: e.detail.screen, particleSize: e.detail.particleSize});
+        if(this.renderer) this.renderer.maxFps = e.detail.maxfps;
+        document.querySelector('color-scale-editor').style.display = e.detail.showPalette ? 'block' : 'none';
+      },
+
+      onColorScaleEditorUpdate(e) {
+        this.colorFunc = e.detail.colorFunc;
+        if(this.intEditorIntf.update) 
+          this.intEditorIntf.update();
+        this.displayIntf.render();
+        if(this.controlsIntf.updatePaletteSetting)
+          this.controlsIntf.updatePaletteSetting(e.detail);
+      },
+
+      render() {
+        this.world.interactParticles();
+        this.world.repelParticles(this.displayIntf.repelX, this.displayIntf.repelY);
+        this.world.moveParticles();
+        this.displayIntf.render();
+        this.displayFps(this.renderer.fps);
+      },
+
+      createWorld(randomize=false, fullScreen=false) {
+        options = this.controlsIntf.getWorldOptions(randomize, fullScreen);
+        if(!this.world) {
+          this.world = new ParticleLife(options, new XorShift128(options.world_seed));
+        } else {
+          this.world.update(options, new XorShift128(options.world_seed));
+        }
+
+        // 相互作用を指定する
+        interactionSets[options.intset](this.world.interaction, new XorShift128(options.interact_seed));
+
+        // 粒子種に偏りを持たせるための確率分布の累積を作る
+        let distribution = new PLSpeciesDistribution(this.world.nspecies, this.world.rand);
+
+        // 粒子の初期配置を決める
+        this.world.setupParticles( (i, j) => [
+          // 本当は world.nlattice で割るべきなのだけれど互換性のためこのまま
+          distribution.species(this.world.rand.next()),
+          i / (this.world.nlattice - 1) - 0.5 + 0.2 * (this.world.rand.next() - 0.5),  // x
+          j / (this.world.nlattice - 1) - 0.5 + 0.2 * (this.world.rand.next() - 0.5),  // y
+          0, 0  // vx, vy
+        ]);
+      },
+
+      restart(randomize = false, fullScreen = false) {
+        if(this.world) this.world.recreating = true;
+        try {
+          this.createWorld(randomize, fullScreen);
+        } finally {
+          this.world.recreating = false;
+        }
+        this.intEditorIntf.update({
+          world: this.world,
+          colorFunc: (x) => this.colorFunc(x)
+        });
+        this.renderer.start();
+      },
+
+      onPauseClick(e) {
+        if(e.detail.pause) {
+          this.renderer.stop();
+        } else {
+          this.renderer.start();
+        }
+      },
+
+      onRecordClick(e) {
+        if(e.detail.recording) {
+          this.renderer.startRecording();
+        } else {
+          this.renderer.stopRecording();
+        }
+      },
+
+      onRestartFromControls(e) {
+        this.renderer.stop();
+        const {randomize, fullScreen} = e.detail;
+        this.restart(randomize, fullScreen);
+      },
+
+      onNewWorldClick() {
+        this.renderer.stop();
+        this.restart(true);
+      },
+
+      onShowEditorClick() {
+        const style = document.getElementById("world-editor").style;
+        if(style.display == "none") {
+          style.display = "block";
+        } else {
+          style.display = "none";
+        }
+      },
+
+      onFullScreenClick() {
+        const style = document.getElementById("full-screen-message").style;
+        style.display = "block"
+        setTimeout(()=> {
+            style.display = "none";
+            this.controlsIntf.update({screen: 'F'}); 
+        }, 1000);
+      },
+
+      onCopyUrlClick() {
+        navigator.clipboard.writeText(this.controlsIntf.getWorldURL());
+        const style = document.getElementById("copy-url-message").style;
+        setTimeout(()=> style.display = "block", 100);
+        setTimeout(()=> style.display = "none", 1600);
+      },
+
+      onDisplayRequestRestart() {
+        this.restart(true, true);
+      },
     }
   </script>
 
