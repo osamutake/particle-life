@@ -6,4 +6,4 @@
 /test/coverage
 /spec/assets-generated
 /bin
-
+/.vscode

@@ -73,24 +73,28 @@
 
   <script>
     export default {
-      onMounted() {
-        util.implementEventTarget(this);
+      onBeforeMount(props, state) {
+        this.state = {
+          current_ij : false,
+          world : null,
+          colorFunc : null
+        }
 
+        props.intf.update = (...args) => this.update(...args);
+      },
+
+      onMounted() {
         const scale_canvas = this.$("#scale");
         const scale_g = scale_canvas.getContext("2d");
         scale_g.scale(scale_canvas.width, scale_canvas.height);
         
-        this.state = {
-          current_ij : false
-        }
-
         this.update();
         
         const viewer = this.$("#matrix");
         
         const e2ij = (e) => {
-          if(!this.world) return null;
-          const n = this.world.nspecies;
+          if(!this.state.world) return null;
+          const n = this.state.world.nspecies;
           const crect = viewer.getBoundingClientRect();
           const ij = [
             Math.floor((e.clientY-crect.top ) / viewer.clientHeight * (n+1)) - 1,
@@ -120,10 +124,10 @@
             const dx = newX - oldX;
             const dy = newY - oldY;
 
-            [a, b] = this.world.interaction.get(...dragging);
+            [a, b] = this.state.world.interaction.get(...dragging);
             a += dy * 0.0000025; if(a >= -0.0005) a = -0.0005;
             b -= dx * 0.0000025;
-            this.world.interaction.set(...dragging, a, b);
+            this.state.world.interaction.set(...dragging, a, b);
             this.update({ current_ij: dragging });
           },
           up: (e, x, y)=> {
@@ -142,7 +146,7 @@
       scaleText() {
         if(!this.state.current_ij) return "";
         const [i, j] = this.state.current_ij;
-        const [a, b] = this.world.interaction.get(i, j);
+        const [a, b] = this.state.world.interaction.get(i, j);
         return `#${i+1} が #${j+1} から受ける力 ` +
                `(核 ${Math.round(-a/0.0015*100)/100}, 周 ${Math.round(-b/0.0005*100)/100})`;
       },
@@ -154,7 +158,7 @@
 
         if(this.state.current_ij) {
           const [i, j] = this.state.current_ij;
-          const [a, b] = this.world.interaction.get(i, j);
+          const [a, b] = this.state.world.interaction.get(i, j);
           const w = this.props.width;
           const ax = Math.round(-a/0.0015 * w/2 + w/2);
           this.$('#a').style.setProperty("--value", Math.min(w, Math.max(0, ax)) + "px");
@@ -165,25 +169,24 @@
           this.$('#b').style.borderBottomColor = (bx < 0 || w < bx) ? "red" : "white";
           this.$('#b').style.top = props.width + "px";
 
-          const n = this.world.nspecies;
+          const n = this.state.world.nspecies;
           this.$('#cursor').style.left = props.width * (1+j)/(n+1) + props.width/(n+1)*0.1 + "px";
           this.$('#cursor').style.top  = props.width * (1+i)/(n+1) + props.width/(n+1)*0.1 + "px";
           this.$('#cursor').style.width   = props.width/(n+1)*0.9 + "px";
           this.$('#cursor').style.height  = props.width/(n+1)*0.9 + "px";
         }
-        this.dispatchEvent("update", null);
       },
 
       render_matrix() {
-        if(!this.world) return;
+        if(!this.state.world) return;
       
-        const n = this.world.nspecies;
+        const n = this.state.world.nspecies;
 
         const canvas = this.$("#matrix");
         const g = canvas.getContext('2d');
-        const palette = [...Array(n)].map((_, i) => this.colorFunc(i/n));
+        const palette = [...Array(n)].map((_, i) => this.state.colorFunc(i/n));
         
-        const dist = new PLSpeciesDistribution(n, this.world.particles);
+        const dist = new PLSpeciesDistribution(n, this.state.world.particles);
         const dist_max = Math.max(...dist.distribution) * 1.2;
         
         g.setTransform(1,0,0,1,0,0);
@@ -207,19 +210,19 @@
           g.fillStyle = "#3c3";
           g.fillRect(0.7, 1.1 + i + (1-dist.distribution[i]/dist_max)*0.9, 0.2, dist.distribution[i]/dist_max*0.9);
 
-          if(!this.colorScale) return;
+          const color = this.props.intColorFunc;
           for(let j = 0; j < n; j++) {
-            let [a, b] = this.world.interaction.get(i, j);
+            let [a, b] = this.state.world.interaction.get(i, j);
             if(i==j) {
               g.fillStyle = "#fff";
               g.fillRect(1.05 + j, 1.05 + i, 0.9, 0.9);
             }
             if(!isNaN(b)){
-              g.fillStyle = this.colorScale.color((-b / 0.0005+1)/2);
+              g.fillStyle = color((-b / 0.0005+1)/2);
               g.fillRect(1.1 + j, 1.1 + i, 0.9, 0.9);
             }
             if(!isNaN(a)){
-              g.fillStyle = this.colorScale.color((-a / 0.0015+1)/2);
+              g.fillStyle = color((-a / 0.0015+1)/2);
               g.fillRect(1.1 + j, 1.1 + i, 0.5, 0.5);
             }
           }
@@ -227,10 +230,10 @@
       },
 
       render_scale() {
-        if(!this.colorScale) return;
+        const color = this.props.intColorFunc;
         const g = this.$("#scale").getContext("2d");
         for(let i = 0; i < 200; i++) {
-          g.fillStyle = this.colorScale.color(i/200);
+          g.fillStyle = color(i/200);
           g.fillRect(i/200, 0, 1/200+0.01, 1);
         }
       }

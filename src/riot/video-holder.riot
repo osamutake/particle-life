@@ -1,0 +1,28 @@
+<video-holder>
+  <div class="video-holder" if={state.blob}>
+    <video></video>
+    <p><a>download the video</a></p>
+  </div>
+
+  <script>
+    export default {
+      onUpdated(props, state) {
+        if(!this.state.blob) return;
+        const vid = this.$('video');
+        vid.src = URL.createObjectURL(this.state.blob);
+        vid.controls = true;
+
+        const a = this.$('a');
+        a.download = location.search.substr(1) + '.webm';
+        a.href = vid.src;
+
+        setTimeout(() => {
+          // 少し待ってからじゃないと scroll to bottom がうまく行かない
+          var doc = document.documentElement;
+          var bottom = doc.scrollHeight - doc.clientHeight;
+          window.scroll(0, bottom);
+        }, 100);
+      }
+    }
+  </script>
+</video-holder>

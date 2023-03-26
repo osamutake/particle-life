@@ -1,19 +1,21 @@
 <help-popup>
-  <div class="background" onclick={close}></div>
+  <div class="background" onclick={ close }></div>
   <article class="message is-info" id="help-popup">
     <div class="message-header">
       使い方
       <button class="delete" onclick={ close }></button>
     </div>
     <div class="message-body">
-      <p id="help-text"><raw html={messages[state.i][0]}></raw>    <div class="arrow arrow-lb">ここ！</div></p>
+      <p id="help-text"><raw html={ state.messages[state.i][0] }></raw></p>
+      <div class="arrow arrow-lb">ここ！</div>
       <div class="buttons">
         <button class="button" id="help-prev" onclick={()=> update({"i": state.i - 1})} if={ state.i !=0 }>
         前へ</button>
         <button class="button is-info" id="help-next" onclick={()=> update({"i": state.i + 1})}>
         { state.i == state.n - 1 ? "閉じる" : "次へ" }</button>
       </div>
-      <progress class="progress is-link" value={state.i+1} max={state.n} id="help-progress">{Math.round(state.i/state.n*100)} %</progress>
+      <progress class="progress is-link" value={state.i+1} max={state.n} id="help-progress">{
+        Math.round(state.i/state.n*100)} %</progress>
     </div>
   </div>
   </article>
@@ -87,60 +89,37 @@
 
   <script>
     export default {
-      onBeforeMount() {
-        this.messages = [
-          [`粒子に命が宿る世界をのんびり眺めながら渡り歩くサイトです<br>
-            <br>
-            飽きたら [次のワールドを生成] を押すと異なる世界に移れます`,
-           "new-world"
-          ],
-          [`[ワールド設定] でお勧めの設定を選んだら何度か押してみてください`,
-           "recommendation"
-          ],
-          [`[全画面  <span class="icon"><ion-icon name="expand"></ion-icon></span>]
-            を押すとフルスクリーン表示にできます<br><br>
-            フルスクリーン表示中は範囲外のダブルクリック/タップあるいは N キーで次のワールドへ移れます`,
-           "full-screen"
-          ],
-          [`メイン画面のダブルクリック/タップでワールドに指を突っ込めます`,
-           "particles-display"
-          ],
-          [`[このワールドをシェア&nbsp;
-             <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>] 
-             で今いるワールドへのリンクをクリップボードへコピーできます`,
-           "copy-url"
-          ],
-          [`[描画制御] の 
-            <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span> 
-            で現れるカラースケールを上下左右にいじると配色を変えられます`,
-           "palette"
-          ],
-          [`[描画制御] の 
-            <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span> 
-            で現在のワールドをはじめからリプレイできます<br>
-            <br>
-            それではどうぞのんびりお楽しみください`,
-           "replay"
-          ],
-        ],
-
-        this.state = {
-          n: this.messages.length,
-          i: 0
-        };
-        
-        this.root.show = ()=> this.show();
+      onBeforeMount(props, state) {
+        this.state = {};
+        this.onBeforeUpdate(props, state);
       },
 
       onMounted() {
+        this.root.show = ()=> this.show();
+
         this.update();
+      },
+
+      setupHelpDisplay(targetId) {
+        const target = document.getElementById(targetId)
+        let help = "";
+        this.state.messages.forEach( (message) => {
+          help += "<li>" + message[0].split(/<br>[\s\n]*<br>/).join("</li><li>") + "</li>";
+        });
+        target.innerHTML = help;
       },
       
       onBeforeUpdate(props, state) {
-        if(this.state.i >= this.state.n) 
-          this.close();
-        if(this.state.i < 0)
+        if(state.messages != props.messages) {
+          this.state.messages = props.messages;
+          this.state.n = props.messages.length;
           this.state.i = 0;
+
+          if(props.helpDisplayTarget)
+            this.setupHelpDisplay(props.helpDisplayTarget);
+        }
+        if(state.i >= state.n) this.close();
+        if(state.i <  0      ) state.i = 0;
       },
       
       show() {
@@ -181,7 +160,7 @@
       
       onUpdated(props, state) {
         const arrow = this.$('.arrow');
-        const targetId = this.messages[this.state.i][1];
+        const targetId = this.state.messages[this.state.i][1];
         if(!targetId) {
           arrow.style.display = "none";
           return;

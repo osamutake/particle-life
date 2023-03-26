@@ -216,9 +216,7 @@ p<!-----------------------------------------------------------------
 
   <script>
     export default {
-      onMounted() {
-        util.implementEventTarget(this);
-
+      async onBeforeMount(props, state) {
         this.default_state = {
           pause: false,
           recording: false,
@@ -239,6 +237,28 @@ p<!-----------------------------------------------------------------
         this.state = Object.assign({}, this.default_state);
 
         this.recommendations.push(...this.props.recommendations);
+
+        this.props.intf.getWorldOptions = (randomize) => {
+          if(randomize) {
+            this.state.interact_seed = 2**56 * Math.random();
+            this.state.world_seed = 2**56 * Math.random();
+            this.update();
+          }
+          return this.state;
+        }
+
+        this.props.intf.update = (...args) => 
+          this.update(...args);
+
+        this.props.intf.updatePaletteSetting = (setting) => {
+          this.state.paletteSetting = setting;
+          this.updateURL();
+        }
+
+      },
+
+      onMounted() {
+        util.implementEventTarget(this);
 
         if(location.search) {
           this.setParameters(location.search);

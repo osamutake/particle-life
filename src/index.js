@@ -26,9 +26,9 @@ async function main() {
   // body の横幅(スクロールバーを除いた値)を 
   // CSS から var(--100vw) で使えるようにする
 
-  const measureWindowSize = ()=>
-      document.body.style.setProperty('--100vw', `${document.body.clientWidth}px`);
-
+  const measureWindowSize = ()=> 
+      document.body.style.setProperty('--100vw', 
+                  `${document.body.clientWidth}px`);
   window.addEventListener('resize', measureWindowSize);
   measureWindowSize();
   
@@ -36,64 +36,90 @@ async function main() {
 
   let world;
   let colorFunc = null;
+
+  this.displayIntf = {
+    world: () => world,
+    colorFunc: () => colorFunc,
+    repelX: NaN,
+    repelY: NaN,
+    update: null,
+    render: null,
+    canvas: null
+  }
   
-  let display = riot.mount("particles-display")[0];
-  display.world = () => world;
-  display.colorFunc = () => colorFunc;
+  let display = riot.mount("particles-display", {intf: this.displayIntf})[0];
   
   let colorScaleEditor = riot.mount(
       "color-scale-editor", 
       {colorScaleList: colorScaleList}
   )[0];
-  
-  
-  let int_editor = riot.mount("interaction-editor")[0];
-  
-  int_editor.colorScale =   
-      new ColorScale([  // heat
-        [0/4,   0, 255, 255 ],
-        [1/4,   0,   0, 192 ],
-        [2/4,   0,   0,   0 ],
-        [3/4, 192,   0,   0 ],
-        [4/4, 255, 255,   0 ],
-      ]);
 
-  const controls = riot.mount('plcontrols', 
-          {recommendations: await (await fetch('recommendations.json')).json()})[0];
+
+  this.intEditorIntf = {
+     update: null,
+  }
+
+  const intEditorColorFunc = (()=>{
+    const colorScale = new ColorScale([  // heat
+      [0/4,   0, 255, 255 ],
+      [1/4,   0,   0, 192 ],
+      [2/4,   0,   0,   0 ],
+      [3/4, 192,   0,   0 ],
+      [4/4, 255, 255,   0 ],
+    ]);
+    return (x)=> colorScale.color(x);
+  })();
+  
+  let intEditor = riot.mount("interaction-editor", 
+      {intf: this.intEditorIntf, intColorFunc: intEditorColorFunc})[0];
+  
+
+  this.controlsIntf = {
+    getWorldOptions: null,
+    updatePaletteSetting: null,
+    update: null
+  }
+  const controls = riot.mount('plcontrols', {
+          intf: this.controlsIntf,
+          recommendations: await (await fetch('recommendations.json')).json()
+        })[0];
 
   controls.addEventListener("update", (e) => {
     if(world) world.update(e.detail);
     colorScaleEditor.update(e.detail.paletteSetting);
-    display.update({tail: e.detail.tail, screen: e.detail.screen, particleSize: e.detail.particleSize});
+    this.displayIntf.update({tail: e.detail.tail, screen: e.detail.screen, particleSize: e.detail.particleSize});
     renderer.maxFps = e.detail.maxfps;
     document.querySelector('color-scale-editor').style.display = e.detail.showPalette ? 'block' : 'none';
   });
 
   colorScaleEditor.addEventListener("update", e => {
     colorFunc = e.detail;
-    int_editor.update();
-    display.render();
+    this.intEditorIntf.update();
+    this.displayIntf.render();
     if(!colorScaleEditor.state.mouseDown) {
-      controls.state.paletteSetting = colorScaleEditor.state;
-      controls.updateURL();
+      this.controlsIntf.updatePaletteSetting(colorScaleEditor.state);
     }
   });
 
   const fps = document.getElementById('fps');
   const render = ()=> {
     world.interactParticles();
-    world.repelParticles(display.state.repelX, display.state.repelY);
+    world.repelParticles(this.displayIntf.repelX, this.displayIntf.repelY);
     world.moveParticles();
-    display.render();
+    this.displayIntf.render();
     fps.innerText = `${String(renderer.fps).slice(0, 4)} fps`;
   }
-  const renderer = new CanvasRenderer(display.$('canvas'), render, exportVid);
+  const videoHolder = riot.mount("video-holder")[0];
+  const renderer = new CanvasRenderer(this.displayIntf.canvas, render, (blob)=>{
+    videoHolder.state.blob = blob;
+    videoHolder.update();
+  });
 
-  controls.update();
+  this.controlsIntf.update();
   colorScaleEditor.update();
 
-  const createWorld = () => {
-    options = controls.state;
+  const createWorld = (randomize=false) => {
+    options = this.controlsIntf.getWorldOptions(randomize);
     if(!world) {
       world = new ParticleLife(options, new XorShift128(options.world_seed));
     } else {
@@ -119,24 +145,19 @@ async function main() {
   }
   
   const restart = (randomize = false) => {
-    if(randomize) {
-      controls.state.interact_seed = 2**56 * Math.random();
-      controls.state.world_seed = 2**56 * Math.random();
-      controls.update();
-    }
-    
     util.destruct(world);
-    createWorld();
-    int_editor.world = world;
-    int_editor.colorFunc = (x)=> colorFunc(x);
-    int_editor.update();
+    createWorld(randomize);
+    this.intEditorIntf.update({
+      world: world,
+      colorFunc: colorFunc
+    });
     renderer.start();
-    display.initializeRequired = true;
   }
   
   restart();
 
-  display.addEventListener('restart', () => {
+  document.querySelector('particles-display')
+          .addEventListener('restart', () => {
     restart(true);
   });
   
@@ -180,7 +201,7 @@ async function main() {
     document.getElementById("full-screen-message").style.display = "block"
     setTimeout(()=> {
         document.getElementById("full-screen-message").style.display = "none";
-        controls.update({screen: 'F'}); 
+        this.controlsIntf.update({screen: 'F'}); 
     }, 1000);
   });
   document.getElementById("full-screen-message").style.display = "none";
@@ -198,45 +219,44 @@ async function main() {
   });
   document.getElementById("copy-url-message").style.display = "none";
 
-  const helpPopup = riot.mount("help-popup")[0];
-  let help = "";
-  helpPopup.messages.forEach( (message) => {
-    help += "<li>" + message[0].split(/<br>[\s\n]*<br>/).join("</li><li>") + "</li>";
-  });
-  const helpList = document.getElementById("help-list").innerHTML = help;
+  riot.mount("help-popup", {helpDisplayTarget: "help-list", messages: [
+    [`粒子に命が宿る世界をのんびり眺めながら渡り歩くサイトです<br>
+      <br>
+      飽きたら [次のワールドを生成] を押すと異なる世界に移れます`,
+     "new-world"
+    ],
+    [`[ワールド設定] でお勧めの設定を選んだら何度か押してみてください`,
+     "recommendation"
+    ],
+    [`[全画面  <span class="icon"><ion-icon name="expand"></ion-icon></span>]
+      を押すとフルスクリーン表示にできます<br><br>
+      フルスクリーン表示中は範囲外のダブルクリック/タップあるいは N キーで次のワールドへ移れます`,
+     "full-screen"
+    ],
+    [`メイン画面のダブルクリック/タップでワールドに指を突っ込めます`,
+     "particles-display"
+    ],
+    [`[このワールドをシェア&nbsp;
+       <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>] 
+       で今いるワールドへのリンクをクリップボードへコピーできます`,
+     "copy-url"
+    ],
+    [`[描画制御] の 
+      <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span> 
+      で現れるカラースケールを上下左右にいじると配色を変えられます`,
+     "palette"
+    ],
+    [`[描画制御] の 
+      <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span> 
+      で現在のワールドをはじめからリプレイできます<br>
+      <br>
+      それではどうぞのんびりお楽しみください`,
+     "replay"
+    ],
+  ]})[0];
+
 }
 
 window.addEventListener('load', () => {
   main()
 })
-
-// ****************************************
-/// 録画データを Blob として受け取り表示する
-// ****************************************
-
-function exportVid(blob) {
-  const div = document.getElementById('video');
-  while(div.firstChild)
-    div.removeChild( div.firstChild );  // remove all children
-
-  const vid = document.createElement('video');
-  vid.src = URL.createObjectURL(blob);
-  vid.controls = true;
-  div.appendChild(vid);
-
-  div.appendChild(document.createElement('br'));
-
-  const a = document.createElement('a');
-  a.download = location.search.substr(1) + '.webm';
-  a.href = vid.src;
-  a.textContent = 'download the video';
-  div.appendChild(a);
-
-  setTimeout(() => {
-    // 少し待ってからじゃないと scroll to bottom がうまく行かない
-    var doc = document.documentElement;
-    var bottom = doc.scrollHeight - doc.clientHeight;
-    window.scroll(0, bottom);
-  }, 100);
-}
-

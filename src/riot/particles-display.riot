@@ -6,11 +6,19 @@
   props = {
     width
     height
+    intf
+  }
+
+  intf = {
+    world: 
+    colorFunc: 
+    repelX: NaN,
+    repelY: NaN,
+    update: null,
+    render: null
   }
 
   state = {
-    repelX: 0,  // 外から参照されることを想定
-    repelY: 0,  // 外から参照されることを想定
     offsetX: 0,   // 内部でのみ使われる
     offsetY: 0,   // 内部でのみ使われる
     tail: 0       // 内部でのみ使われる
@@ -49,15 +57,21 @@
 
   <script>
     export default {
-      onBeforeMount() {
+      onBeforeMount(props, state) {
         this.state = {
-          repelX: NaN,
-          repelY: NaN,
           offsetX: 0,
           offsetY: 0,
           tail: 0,
           particleSize: 3
         }
+
+        props.intf.update = (...args) =>
+          this.update(...args);
+
+        props.intf.render = (...args) =>
+          this.render(...args);
+
+        props.intf.canvas = this.$('canvas')
       },
 
       onMounted() {
@@ -93,11 +107,11 @@
             } else {                    // ダブルタップ
               canvasTapCount = 0 ;
               if(!mouse2xyIn(x,y)){
-                this.dispatchEvent('restart');
+                this.root.dispatchEvent(new CustomEvent('restart', { detail: null }));
                 return;
               }
               mouseDoubleDown = true;
-              [this.state.repelX, this.state.repelY] = mouse2xy(x, y)
+              [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(x, y)
             }
           },
           move: (e, mouseDown, newX, newY, oldX, oldY) => {
@@ -111,13 +125,13 @@
                 this.state.offsetY -= Math.round(this.state.offsetY);
                 this.render();
               } else {                  // 斥力
-                [this.state.repelX, this.state.repelY] = mouse2xy(newX, newY)
+              [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(newX, newY)
               }
             }
           },
           up: (e, x, y) => {
             mouseDoubleDown = false;
-            [this.state.repelX, this.state.repelY] = [NaN, NaN]
+            [this.props.intf.repelX, this.props.intf.repelY] = [NaN, NaN]
           }
         });
 
@@ -362,8 +376,8 @@
       /// 描画する
       render() {
 
-        world = this.world && this.world();
-        colorFunc = this.colorFunc && this.colorFunc();
+        world = this.props.intf.world();
+        colorFunc = this.props.intf.colorFunc();
         if(!world || !colorFunc) return;
 
         const canvas = this.$("canvas");

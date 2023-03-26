@@ -5,18 +5,18 @@
 
 *************************************************/
 
+import t0 from './app.riot'
 import t1 from './raw.riot'
 import t2 from './particles-display.riot'
 import t3 from './plcontrols.riot'
 import t4 from './color-scale-editor.riot'
 import t5 from './interaction-editor.riot'
 import t6 from './help-popup.riot'
+import t7 from './video-holder.riot'
 
 export function registerAllTags(riot) {
-
   installPlugins(riot)
-
-  let tags = [t1, t2, t3, t4, t5, t6]
+  let tags = [t0, t1, t2, t3, t4, t5, t6, t7]
   for(let tag of tags)
     riot.register(tag.name, tag)
   return tags;

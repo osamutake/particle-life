@@ -44,7 +44,7 @@
       <h1 class="title is-3">Particle Life</h1>
 
       <p>粒子に命が宿る世界をのんびり眺めるサイトです。<br>飽きたら「次のワールドを生成」を押してください。</p>
-      <div style="text-align:right;max-width:600px"><span id="fps" style="vertical-align:top;margin-left:10px"></span></div>
+      <div id="fps" style="text-align:right;max-width:600px"></div>
       <div class="columns is-desktop">
         <div class="column is-narrow" style="line-height:1;position:relative;">
           <help-popup></help-popup>
@@ -72,6 +72,17 @@
         </div>
       </div>
 
+      <div class="columns">
+        <plcontrols></plcontrols>
+      </div>
+
+      <video-holder></video-holder>
+
+      <div class="content">
+        <ul id="help-list">
+        </ul>
+      </div>
+      
       <style>
         body {
           background: #d6e7f5;
@@ -109,17 +120,6 @@
         }
       </style>
 
-      <div class="columns">
-        <plcontrols></plcontrols>
-      </div>
-
-      <div id="video"></div>
-
-      <div class="content">
-      <ul id="help-list">
-      </ul>
-      </div>
-      
       <hr>
       
       <a href="https://github.com/osamutake/particle-life"><ion-icon name="logo-github"></ion-icon> GitHub project site</a>
