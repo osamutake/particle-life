@@ -15,9 +15,7 @@ export default [
   [`メイン画面のダブルクリック/タップでワールドに指を突っ込めます`,
   "particles-display"
   ],
-  [`[このワールドをシェア&nbsp;
-    <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>] 
-    で今いるワールドへのリンクをクリップボードへコピーできます`,
+  ['[このワールドをシェア&nbsp; <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>] で今いるワールドへのリンクをクリップボードへコピーできます',
   "copy-url"
   ],
   [`[描画制御] の 

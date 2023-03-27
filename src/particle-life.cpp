@@ -55,7 +55,7 @@ typedef struct {
     int32_t nspecies;
     int32_t nparticles;
     int32_t rth1, rth2, rmax;
-    int32_t perterb, decel;
+    int32_t perturb, decel;
     int32_t row_div;
 } world_t;
 
@@ -513,16 +513,16 @@ void EMSCRIPTEN_KEEPALIVE moveParticles(
     particle_t *p, *guard = particles + world->nparticles;
     for(p = particles; p < guard; p++) {
         // ノイズを加える
-        p->vx += (world->perterb * (int64_t)XorShift128NextInt(rand)) >> 32;
-        p->vy += (world->perterb * (int64_t)XorShift128NextInt(rand)) >> 32;
+        p->vx += (world->perturb * (int64_t)XorShift128NextInt(rand)) >> 32;
+        p->vy += (world->perturb * (int64_t)XorShift128NextInt(rand)) >> 32;
 
         // 粒子の移動
         p->x += p->vx;
         p->y += p->vy;
 
         // 減速
-        p->vx = ((int64_t)p->vx * world->decel) >> 32;
-        p->vy = ((int64_t)p->vy * world->decel) >> 32;
+        p->vx = ((int64_t)p->vx * world->decel) >> 30;
+        p->vy = ((int64_t)p->vy * world->decel) >> 30;
     }
 };
 

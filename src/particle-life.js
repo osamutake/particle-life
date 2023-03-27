@@ -4,7 +4,7 @@
 //          int32_t nspecies;
 //          int32_t nparticles;
 //          int32_t rth1, rth2, rmax;
-//          int32_t perterb, decel;
+//          int32_t perturb, decel;
 //          int32_t row_div;
 //      } world_t;
 // ****************************************
@@ -19,19 +19,21 @@ export class ParticleLife {
 
   update(options, rand = this.rand) {
 
-    // デフォルト値を指定
-    util.importOptions(this, options, {
+    // 指定されていないパラメータは現状通り
+    // 初回は規定値をあてはめる
+    const defaultParams = util.importOptions({}, this, {
       nspecies: 6,
       nlattice: 30,
       rth1: 0.05,
       rth2: 0.1,
       rmax: 0.2,
-      perterb: 0.001,
+      perturb: 0.001,
       decel: 0.499,
       scale: 1.0,
       step: 1.0,
-      row_div: 1
-    });
+      row_div: 3
+    })
+    util.importOptions(this, options, defaultParams)
 
     this.rand = rand;
     this.nparticles = this.nlattice * this.nlattice;
@@ -70,8 +72,8 @@ export class ParticleLife {
     this.mem[2] = this.rth1    / this.scale * 2**32; // 整数演算用にスケール
     this.mem[3] = this.rth2    / this.scale * 2**32;
     this.mem[4] = this.rmax    / this.scale * 2**32;
-    this.mem[5] = this.perterb / this.scale * 2**32;
-    this.mem[6] = this.decel                * 2**32;
+    this.mem[5] = this.perturb / this.scale * 2**32;
+    this.mem[6] = this.decel                * 2**30;
     this.mem[7] = this.row_div;
   }
 

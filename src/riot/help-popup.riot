@@ -3,17 +3,17 @@
     <div class="background" onclick={ close }></div>
     <article class="message is-info" id="help-popup">
       <div class="message-header">
-        使い方
+        <i18n>使い方</i18n>
         <button class="delete" onclick={ close }></button>
       </div>
       <div class="message-body">
-        <p id="help-text"><raw html={ state.messages[state.i][0] }></raw></p>
-        <div class="arrow arrow-lb">ここ！</div>
+        <p id="help-text"><raw html={ i18n.t(state.messages[state.i][0], state.messages[state.i][1]+"_help") }></raw></p>
+        <div class="arrow arrow-lb"><i18n>ここ！</i18n></div>
         <div class="buttons">
           <button class="button" id="help-prev" onclick={()=> update({"i": state.i - 1})} if={ state.i !=0 }>
-          前へ</button>
-          <button class="button is-info" id="help-next" onclick={()=> update({"i": state.i + 1})}>
-          { state.i == state.n - 1 ? "閉じる" : "次へ" }</button>
+          <i18n>前へ</i18n></button>
+          <button class="button is-info" id="help-next" onclick={()=> update({"i": state.i + 1})}><i18n>
+          { state.i == state.n - 1 ? "閉じる" : "次へ" }</i18n></button>
         </div>
         <progress class="progress is-link" value={state.i+1} max={state.n} id="help-progress">{
           Math.round(state.i/state.n*100)} %</progress>
@@ -109,12 +109,22 @@
   <script>
     export default {
       onBeforeMount(props, state) {
+        this.i18n = i18n;
         this.state = {};
         this.onBeforeUpdate(props, state);
       },
 
       onMounted() {
         this.update();
+        i18n.addEventListener('update', this.onI18nUpdate)
+      },
+
+      onUnmounted() {
+        i18n.removeEventListener('update', this.onI18nUpdate)
+      },
+
+      onI18nUpdate() {
+        this.update()
       },
 
       onBeforeUpdate(props, state) {
@@ -129,14 +139,14 @@
 
         this.messages = [];
         this.state.messages.forEach( (message) =>
-          message[0].split(/<br>[\s\n]*<br>/).forEach( (message) => {
+          i18n.t(message[0], message[1]+"_help").split(/<br>[\s\n]*<br>/).forEach( (message) => {
             this.messages.push(message);
           })
         );
       },
       
       show() {
-        const scrollTo = document.querySelector('h1 + p').getBoundingClientRect().top;
+        const scrollTo = document.querySelector('app').getBoundingClientRect().top;
         window.scrollTo(0, scrollTo + window.scrollY);
         
         if(!this.keydown) {

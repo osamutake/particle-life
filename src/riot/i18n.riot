@@ -1,0 +1,28 @@
+<i18n>
+  <span>
+    <span class="original"><slot /></span>
+    <span class="translated"></span>
+  </span>
+
+  <style>
+    .original { display: none; }
+  </style>
+
+  <script>
+    export default {
+      onMounted() {
+        i18n.addEventListener("update", this.onI18nUpdate)
+        this.update();
+      },
+      onUpdated() {
+        this.$('.translated').innerHTML = i18n.t(this.$('.original').innerHTML, this.props.id);
+      },
+      onUnmounted() {
+        i18n.removeEventListener("update", this.onI18nUpdate)
+      },
+      onI18nUpdate() {
+        this.update();
+      }
+    }
+  </script>
+</i18n>

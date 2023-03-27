@@ -4,6 +4,8 @@ import * as util from './util.js'
 
 import recommendations from './recommendations.js'
 import { PLSpeciesDistribution } from './pl-species-distribution.js'
+import { i18n } from  './i18n.js'
+import i18nDictionary from  './i18n-dictionary.js'
 
 // すべてのタグを含めコンパイルされたものを obj から読み込む
 import { registerAllTags } from '../obj/riot_tags.js'
@@ -16,6 +18,7 @@ async function main() {
   window.wasm = wasm;
   window.util = util;
   window.PLSpeciesDistribution = PLSpeciesDistribution;
+  window.i18n = i18n; i18n.setDictionary('ja', i18nDictionary);
 
   // riot タグを読み込み
   registerAllTags(riot);
@@ -28,6 +31,14 @@ async function main() {
                   `${document.body.clientWidth}px`);
   window.addEventListener('resize', measureWindowSize);
   measureWindowSize();
+
+  document.getElementById('locale-en').addEventListener('click', ()=>{
+    i18n.setLocale('en');
+  })
+
+  document.getElementById('locale-ja').addEventListener('click', ()=>{
+    i18n.setLocale('ja');
+  })
 
   riot.mount('app', {recommendations: recommendations});
 }

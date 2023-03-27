@@ -30,50 +30,55 @@ p<!-----------------------------------------------------------------
 <plcontrols>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="recommendation" class="label">ワールド設定</label>
+      <label for="recommendation" class="label"><i18n>ワールド設定</i18n></label>
       <div class="select">
         <select id="recommendation" value="" onchange={ recommendationChange }>
-          <option value="" >URLで</option>
-          <option  each={ recommendation in recommendations } key={recommendation[1]} value={recommendation[1]}>{recommendation[0]}</option>
+          <option value="" >{i18n.t("URLで")}</option>
+          <option  each={ recommendation in recommendations } 
+              key={recommendation[1]} value={recommendation[1]}>{i18n.t(recommendation[0])}</option>
         </select>
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="interact_seed" class="label">描画制御</label>
+      <label for="interact_seed" class="label"><i18n>描画制御</i18n></label>
       <div class="field has-addons">
         <p class="control">
-          <button class="button" onclick={ ()=> this.dispatchEvent("restart", {randomize: false, fullScreen: false}) } id="replay" title="始めに戻ってリプレイ">
+          <button class="button" onclick={ ()=> this.dispatchEvent("restart", {randomize: false, fullScreen: false}) } 
+            id="replay" title={i18n.t("始めに戻ってリプレイ")}>
             <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="pause" class={ state.pause ? "button is-danger" : "button" }
-                  onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } } title="ポーズ／再開">
+                  onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } } 
+                  title={ i18n.t("ポーズ／再開") }>
             <span class="icon is-small"><ion-icon name={ state.pause ? "play" : "pause" }></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="recording" class={ state.recording ? "button is-danger" : "button" } 
-                  onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } } title="webm に録画">
+                  onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } } 
+                  title={ i18n.t("webm に録画") }>
             <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
           </button>
         </p>
         <p class="control">
           <button id="palette" class={ state.showPalette ? "button is-dark" : "button" } 
-                  onclick={ ()=>{ update({"showPalette": !state.showPalette }) } } title="カラーパレット編集">
+                  onclick={ ()=>{ update({"showPalette": !state.showPalette }) } } 
+                  title={ i18n.t("カラーパレット編集") }>
             <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span>
           </button>
         </p>
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="particleSize" class="label">粒径</label>
+      <label for="particleSize" class="label"><i18n>粒径</i18n></label>
       <div class="control">
-        <input class="input" id="particleSize" type="numeric"  value={state.particleSize} size="3" onchange={ editorChanged } min="0" step="0.5" max="127.5" /> 
+        <input class="input" id="particleSize" inputmode="decimal"  value={state.particleSize} size="3" onchange={ editorChanged } min="0" step="0.5" max="127.5" /> 
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="screen" class="label">画面 &nbsp; <span class="icon is-clickable" onclick={ ()=> update({screen: "F"}) }><ion-icon name="expand"></ion-icon></span></label>
+      <label for="screen" class="label" style="position:relative;"><i18n>画面</i18n> &nbsp; <span class="icon is-clickable" style="position:absolute;top:-4px;" onclick={ ()=> update({screen: "F"}) }><ion-icon name="expand"></ion-icon></span></label>
       <div class="select">
         <select id="screen" value={state.screen} onchange={ editorChanged }>
           <option value="XS">XS</option>
@@ -85,13 +90,13 @@ p<!-----------------------------------------------------------------
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="maxfps" class="label">最大fps</label>
+      <label for="maxfps" class="label"><i18n>最大fps</i18n></label>
       <div class="control">
-        <input class="input" id="maxfps" type="numeric"  value={state.maxfps} size="3" onchange={ editorChanged } min="0" max="1000" step="10"/> 
+        <input class="input" id="maxfps" inputmode="decimal"  value={state.maxfps} size="3" onchange={ editorChanged } min="0" max="1000" step="10"/> 
       </div>
     </div>
     <div class="column is-narrow field">
-      <label class="label">使い方</label>
+      <label class="label"><i18n>使い方</i18n></label>
       <div class="control">
         <button class="button is-info" onclick={props.onHelp}>
           <span class="icon is-small"><ion-icon name="help"></ion-icon></span>
@@ -102,61 +107,62 @@ p<!-----------------------------------------------------------------
   <div style={`display: ${ $('#recommendation').value=='?' ? 'block' : 'none' }`}>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="nspecies" class="label">粒子種数</label>
+      <label for="nspecies" class="label"><i18n>粒子種数</i18n></label>
       <div class="control">
-        <input class="input" id="nspecies" type="numeric" value={state.nspecies} size="2" onchange={ editorChanged } min="1" max="200" step="1" />
+        <input class="input" id="nspecies" inputmode="decimal" value={state.nspecies} size="2" onchange={ editorChanged } min="1" max="200" step="1" />
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="nparticles" class="label">√粒子数</label>
+      <label for="nparticles" class="label"><i18n>√粒子数</i18n></label>
       <div class="control">
-        <input class="input" id="nlattice" type="numeric" value={state.nlattice} size="2" onchange={ editorChanged } min="5" max="300" step="10" />
+        <input class="input" id="nlattice" inputmode="decimal" value={state.nlattice} size="2" onchange={ editorChanged } min="5" max="300" step="10" />
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="scale" class="label">スケール</label>
+      <label for="scale" class="label"><i18n>スケール</i18n></label>
       <div class="control">
-        <input class="input" id="scale" type="numeric"  value={state.scale} size="2" onchange={ editorChanged } min="0.5" step="0.2" max="20" />
+        <input class="input" id="scale" inputmode="decimal"  value={state.scale} size="2" onchange={ editorChanged } min="0.5" step="0.2" max="20" />
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="step" class="label">計算ステップ</label>
+      <label for="step" class="label"><i18n>計算ステップ</i18n></label>
       <div class="control">
-        <input class="input" id="step" type="numeric"  value={state.step} size="2" onchange={ editorChanged } min="0" max="2" step="0.1" /> 
+        <input class="input" id="step" inputmode="decimal"  value={state.step} size="2" onchange={ editorChanged } min="0" max="2" step="0.1" /> 
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="tail" class="label">尾の長さ</label>
+      <label for="tail" class="label"><i18n>尾の長さ</i18n></label>
       <div class="control">
-        <input class="input" id="tail" type="numeric"  value={state.tail} size="2" onchange={ editorChanged }  min="0" step={
+        <input class="input" id="tail" inputmode="decimal"  value={state.tail} size="2" onchange={ editorChanged }  min="0" step={
           state.tail < 15 ? 1 :
           state.tail < 30 ? 2 : 10
         } /> 
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="perterb" class="label">揺動</label>
+      <label for="perturb" class="label"><i18n>揺動</i18n></label>
       <div class="control">
-        <input id="perterb" type="checkbox" checked={state.perterb != 0} onchange={ editorChanged } /> 
+        <input id="perturb" type="checkbox" checked={state.perturb != 0} onchange={ editorChanged } /> 
       </div>
     </div>
   </div>
   <div class="columns">
     <div class="column is-narrow field">
-      <label for="intset" class="label">相互作用セット</label>
+      <label for="intset" class="label"><i18n>相互作用セット</i18n></label>
       <div class="select">
         <select id="intset" value={state.intset} onchange={ editorChanged }>
-          <option value="">デフォルト</option>
-          <option value="A">多粒子種補正A</option>
-          <option value="B">多粒子種補正B</option>
+          <option value="">{i18n.t("デフォルト")}</option>
+          <option value="A">{i18n.t("多粒子種補正A")}</option>
+          <option value="B">{i18n.t("多粒子種補正B")}</option>
         </select>
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="interact_seed" class="label">相互作用シード</label>
+      <label for="interact_seed" class="label"><i18n>相互作用シード</i18n></label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="interact_seed" type="numeric" value={ state.interact_seed } onchange={ editorChanged } size="12" min="1">
+          <input class="input" id="interact_seed" inputmode="decimal" 
+            value={ state.interact_seed } onchange={ editorChanged } size="12" min="1">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateInteractionSeed }>
@@ -166,10 +172,10 @@ p<!-----------------------------------------------------------------
       </div>
     </div>
     <div class="column is-narrow field">
-      <label for="world_seed" class="label">粒子配置シード</label>
+      <label for="world_seed" class="label"><i18n>粒子配置シード</i18n></label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" id="world_seed" type="numeric" value={ state.world_seed } onchange={ editorChanged } size="12" min="1">
+          <input class="input" id="world_seed" inputmode="decimal" value={ state.world_seed } onchange={ editorChanged } size="12" min="1">
         </div>
         <div class="control">
           <a class="button is-info" onclick={ regenerateWorldSeed }>
@@ -181,7 +187,7 @@ p<!-----------------------------------------------------------------
   </div>
 
   <a class="button is-info is-small" id="show-editor" onclick={props.onShowEditor}>
-    パラメータエディタを表示/非表示</a>
+    <i18n>パラメータエディタを表示/非表示</i18n></a>
   </div>
 
   <div class="columns" style="display:none">
@@ -218,6 +224,8 @@ p<!-----------------------------------------------------------------
   <script>
     export default {
       async onBeforeMount(props, state) {
+        this.i18n = i18n;
+
         this.default_state = {
           pause: false,
           recording: false,
@@ -230,7 +238,7 @@ p<!-----------------------------------------------------------------
           maxfps: 60,
           step: 1,
           intset: "",
-          perterb: 0.001,
+          perturb: 0.001,
           screen: "S",
           particleSize: 4,
         };
@@ -278,6 +286,20 @@ p<!-----------------------------------------------------------------
             this.update();
           }
         });
+
+        this.$$('input[inputmode="decimal"]').forEach((elem)=>
+          elem.autocomplete = "off"
+        )
+
+        i18n.addEventListener('update', this.onI18nUpdate)
+      },
+
+      onUnmounted() {
+        i18n.removeEventListener('update', this.onI18nUpdate)
+      },
+
+      onI18nUpdate() {
+        this.update()
       },
 
       flashing: false,
@@ -310,8 +332,8 @@ p<!-----------------------------------------------------------------
 
       editorChanged(e) {
         let {id, value} = e.target;
-        if(e.target.id == "perterb") {
-          Object.assign(this.state, {perterb: (e.target.checked ? 0.001 : 0)});
+        if(e.target.id == "perturb") {
+          Object.assign(this.state, {perturb: (e.target.checked ? 0.001 : 0)});
         } else
         if(e.target.id == "scale") {
           Object.assign(this.state, {
@@ -422,7 +444,7 @@ p<!-----------------------------------------------------------------
         let search = '?'; //  + (state.screen != 'S' ? state.screen : ''); 保存しないことにした
         search += state.nspecies + "_" + state.nlattice;
         search += "_" + state.interact_seed + state.intset + "_" + state.world_seed;
-        search += state.perterb  ? "" : "n";
+        search += state.perturb  ? "" : "n";
         search += "_" + state.tail;
         search += "_" + state.scale;
         search += "_" + state.step;
@@ -513,7 +535,7 @@ p<!-----------------------------------------------------------------
         let match = /^(.*)n$/.exec(result.world_seed);
         if(match) {
           result.world_seed = match[1];
-          result.perterb = 0;
+          result.perturb = 0;
         }
 
         // スクリーンサイズ

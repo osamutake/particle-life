@@ -16,7 +16,7 @@ export class PLInteractionMatrix {
   
   update(world) {
     this.world = world;
-    if(!this.matrix) {
+    if(this.matrix == null) {
       this.matrix = 
         [...Array(world.nspecies)].map(() =>
           [...Array(world.nspecies)].map(()=> 
@@ -35,7 +35,7 @@ export class PLInteractionMatrix {
 
     // ３つの値を 粒子種数 x 粒子種数 x 2 個 格納する
     let len = 3 * world.nspecies * world.nspecies * 2;
-    if(!this.mem) {
+    if(this.mem == null) {
       this.mem = wasm.i32.alloc(len * 4);
     } else 
     if(this.mem.length < len){

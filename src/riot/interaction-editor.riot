@@ -16,17 +16,86 @@
 
 <interaction-editor>
 
-  <div class="container">
-    <canvas id="matrix" width={ props.width } height={ props.width }></canvas><br>
-    <canvas id="scale"  width={ props.width } height="40"></canvas>
-    <div id="a" class="arrow" if={ state.current_ij }></div>
-    <div id="b" class="arrow" if={ state.current_ij }></div>
-    <div id="scale-text" if={ state.current_ij }>{ scaleText() }</div>
-    <div id="cursor" if={ state.current_ij }></div>
-  </div>
+  <section class="message is-info" style={`width:${Number(props.width)+2}px`}>
+    <div class="message-header is-clickable" onclick={collapsePanel}>  
+      <i18n>相互作用係数マトリクス</i18n>
+      <span><ion-icon name="chevron-up"></ion-icon><ion-icon name="chevron-down"></ion-icon></span>
+    </div>
+    <div class="message-body container">
+      <canvas id="matrix" width={ props.width } height={ props.width }></canvas><br>
+      <canvas id="scale"  width={ props.width } height="40"></canvas>
+      <div id="a" class="arrow" style={ "visibility:" + (state.current_ij ? "visible" : "hidden") }></div>
+      <div id="b" class="arrow" style={ "visibility:" + (state.current_ij ? "visible" : "hidden") }></div>
+      <div id="scale-text" style={ "visibility:" + (state.current_ij ? "visible" : "hidden") }>&nbsp;{ scaleText() }&nbsp;</div>
+      <div id="cursor" style={ "visibility:" + (state.current_ij ? "visible" : "hidden") }></div>
+      <br>
+      <div class="content">
+        <ul>
+          <li><i18n>相互作用は非対称で a が b から受ける力と b が a から受ける力は異なる</i18n></li>
+          <li><i18n>引力は負で青、斥力は正で赤</i18n></li>
+          <li><i18n>近距離力（粒子が極端に近づいた時の力）は常に斥力</i18n></li>
+          <li><i18n>遠距離力は引力にも斥力にもなる</i18n></li>
+          <li><i18n>実際に掛かる力はここで指定した係数を距離に応じて減衰させた値になる</i18n></li>
+        </ul>
+        <br>
+      </div>
+    </div>
+  </section>
+
+  <section class="container message is-info" style={`width:${Number(props.width)+2}px`}>
+    <div class="message-header is-clickable" onclick={collapsePanel}>
+      <i18n>相互作用距離・減衰・揺動</i18n>
+      <span><ion-icon name="chevron-up"></ion-icon><ion-icon name="chevron-down"></ion-icon></span>
+    </div>
+    <div class="message-body container">
+      <div class="content">
+        <div style="padding-left:10px;padding-top:20px;">
+          <input class="slider" id="rth1" step="0.001" min="0" max="0.4" value={state.world && state.world.rth1} type="range" oninput={onRadiusSliderChange}>
+          <label for="rth1" class="slider-label"><span>Rth1 </span>= {state.world && state.world.rth1}</label><br>
+          <input class="slider" id="rth2" step="0.001" min="0" max="0.4" value={state.world && state.world.rth2} type="range" oninput={onRadiusSliderChange}>
+          <label for="rth2" class="slider-label"><span>Rth2 </span>= {state.world && state.world.rth2}</label><br>
+          <input class="slider" id="rmax" step="0.001" min="0" max="0.4" value={state.world && state.world.rmax} type="range" oninput={onRadiusSliderChange}>
+          <label for="rmax" class="slider-label"><span>Rmax </span>= {state.world && state.world.rmax}</label><br>
+          <input class="slider" id="decel" step="0.001" min="0" max="1" value={state.world && state.world.decel} type="range" oninput={onRadiusSliderChange}>
+          <label for="decel" class="slider-label"><span>Decel </span>= {state.world && state.world.decel}</label><br>
+          <input class="slider" id="perturb" step="0.01" min="0" max="10" value={state.world && state.world.perturb * 1000} type="range" oninput={onRadiusSliderChange}>
+          <label for="perturb" class="slider-label"><span>Perturb </span>= {state.world && state.world.perturb * 1000}</label><br>
+          <input class="slider" id="row_div" step="1" min="1" max="10" value={state.world && state.world.row_div} type="range" oninput={onRadiusSliderChange}>
+          <label for="row_div" class="slider-label"><span>RowDiv </span>= {state.world && state.world.row_div}</label><br>
+        </div>
+        <ul>
+          <li><i18n id="近距離斥力説明">近距離斥力は r = 0 で指定値、r = Rth1 まで線型に減少</i18n></li>
+          <li><i18n id="遠距離力説明">遠距離力は r = Rth2 で指定値、r = Rth1 および r = Rmax まで線型に減少</i18n></li>
+          <li><i18n id="減衰量説明">粒子速度は計算ステップごとに decel 因子を掛けることで減衰される</i18n></li>
+          <li><i18n id="揺動説明">計算ステップごとに Perturb の ± 1/2,000 を最大値とする乱数が速度に加算される。</i18n></li>
+          <li><i18n id="rowdiv説明">相互作用計算の最適化パラメータ。３～４あたりで最も高速。計算結果には影響しないはず。</i18n></li>
+        </ul>
+        <br>
+      </div>
+    </div>
+  </section>
 
   <style type="scss">
     :host {
+      .slider-label {
+        padding-left: 2rem;
+        display: inline-block;
+        width: 150px;
+        height: 2rem;
+      }
+      .slider {
+        width: 400px;
+      }
+
+      .is-clickable * {
+        touch-action: none;
+        pointer-events: none;
+      }
+
+      .collapsed + .message-body {
+        display: none;
+      }
+
       .container {
         position: relative;
         line-height: 100%;
@@ -73,6 +142,10 @@
 
   <script>
     export default {
+      collapsePanel(e) {
+        e.target.classList.toggle('collapsed');
+      },
+
       onBeforeMount(props, state) {
         this.state = {
           current_ij : false,
@@ -147,8 +220,7 @@
         if(!this.state.current_ij) return "";
         const [i, j] = this.state.current_ij;
         const [a, b] = this.state.world.interaction.get(i, j);
-        return `#${i+1} が #${j+1} から受ける力 ` +
-               `(核 ${Math.round(-a/0.0015*100)/100}, 周 ${Math.round(-b/0.0005*100)/100})`;
+        return i18n.tag`#${i+1} が #${j+1} から受ける力 (近 ${Math.round(-a/0.0015*100)/100}, 遠 ${Math.round(-b/0.0005*100)/100})`;
       },
 
       onUpdated(props, state) {
@@ -159,22 +231,41 @@
         if(this.state.current_ij) {
           const [i, j] = this.state.current_ij;
           const [a, b] = this.state.world.interaction.get(i, j);
-          const w = this.props.width;
+          const w = this.$("#matrix").clientWidth;
+          const oy = this.$("#matrix").offsetTop;
           const ax = Math.round(-a/0.0015 * w/2 + w/2);
           this.$('#a').style.setProperty("--value", Math.min(w, Math.max(0, ax)) + "px");
           this.$('#a').style.borderBottomColor = (ax < 0 || w < ax) ? "red" : "white";
-          this.$('#a').style.top = props.width + "px";
+          this.$('#a').style.top = w + oy + "px";
           const bx = Math.round(-b/0.0005 * w/2 + w/2);
           this.$('#b').style.setProperty("--value", Math.min(w, Math.max(0, bx)) + "px");
           this.$('#b').style.borderBottomColor = (bx < 0 || w < bx) ? "red" : "white";
-          this.$('#b').style.top = props.width + "px";
+          this.$('#b').style.top = w + oy + "px";
 
           const n = this.state.world.nspecies;
-          this.$('#cursor').style.left = props.width * (1+j)/(n+1) + props.width/(n+1)*0.1 + "px";
-          this.$('#cursor').style.top  = props.width * (1+i)/(n+1) + props.width/(n+1)*0.1 + "px";
-          this.$('#cursor').style.width   = props.width/(n+1)*0.9 + "px";
-          this.$('#cursor').style.height  = props.width/(n+1)*0.9 + "px";
+          this.$('#cursor').style.left = w * (1+j)/(n+1) + w/(n+1)*0.1 + "px";
+          this.$('#cursor').style.top  = w * (1+i)/(n+1) + w/(n+1)*0.1 + oy + "px";
+          this.$('#cursor').style.width   = w/(n+1)*0.9 + "px";
+          this.$('#cursor').style.height  = w/(n+1)*0.9 + "px";
         }
+      },
+
+      onRadiusSliderChange(e) {
+        let {id, value} = e.target
+        const d = 0.005
+        const world = this.state.world
+        const {rth1, rth2, rmax, decel} = world
+        if(id=="rth1") value = Math.min(rth2 - d, Math.max(0, value))
+        if(id=="rth2") value = Math.min(rmax - d, Math.max(rth1 + d, value))
+        if(id=="rmax") value = Math.min(0.4     , Math.max(rth2 + d, value))
+        if(id=="decel") value = Math.min(1.0    , Math.max(0       , value))
+        if(id=="perturb") value = Math.min(10    , Math.max(0       , value)) / 1000
+
+        world[id] = value
+        world.interaction.convertAll()
+        world.update(world)
+
+        this.update();
       },
 
       render_matrix() {
