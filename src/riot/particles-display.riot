@@ -148,16 +148,14 @@
         let canvas = this.$('canvas');
         this.state.size = screens[this.state.screen] || 600;
         if(this.state.screen == "F") {
-          this.state.size = Math.min(window.screen.width, window.screen.height);
-          [canvas.width, canvas.height] = [window.screen.width, window.screen.height]
+          // https://stackoverflow.com/questions/2242086/how-to-detect-the-screen-resolution-with-javascript
+          const [w, h] = [window.screen.width  * window.devicePixelRatio,
+                          window.screen.height * window.devicePixelRatio]
+          this.state.size = Math.min(w, h);
+          [canvas.width, canvas.height] = [w, h];
           const checkWebgl = document.getElementById('webgl');
           if(!checkWebgl.checked) // webgl が使えないときは正方形のままで
             [canvas.width, canvas.height] = [this.state.size, this.state.size]
-          if(this.state.size < 500){
-            this.state.size *= 2;
-            canvas.width *= 2;
-            canvas.height *= 2;
-          }
         } else {
           [canvas.width, canvas.height] = [this.state.size, this.state.size]
         }

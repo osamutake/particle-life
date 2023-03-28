@@ -3,12 +3,15 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="粒子に命が宿る世界を覗き見るサイトです(?)">
+    <meta name="description" lang="ja" content="粒子に命が宿る世界を覗き見るサイトです(?)">
+    <meta name="description" lang="en" content="Traverse the worlds where particles come to life.">
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="@osamu_takeuchi" />
     <meta property="og:url" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/" />
-    <meta property="og:title" content="Particle Life | 武内＠筑波大" />
-    <meta property="og:description" content="粒子の世界を覗く。飽きたら「次のワールドを生成」を押してください。" />
+    <meta property="og:title" lang="ja" content="Particle Life | 武内＠筑波大" />
+    <meta property="og:title" lang="en" content="Particle Life | takeuchi@bk.tsukuba.ac.jp" />
+    <meta property="og:description" lang="ja" content="粒子の世界を覗く。飽きたら「次のワールドを生成」を押してください。" />
+    <meta property="og:description" lang="en" content="Watch particles' lives. Bored? Move to 'Next World'." />
     <meta property="og:image" content="https://dora.bk.tsukuba.ac.jp/~takeuchi/particle-life/og_image.png" />
 
     <link rel="apple-touch-icon" sizes="57x57" href="./favicon/apple-icon-57x57.png">
@@ -36,94 +39,53 @@
     <script nomodule="" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
     <!-- https://www.jsdelivr.com/package/npm/validatorjs -->
     <script src="https://cdn.jsdelivr.net/npm/validatorjs@3.22.1/dist/validator.min.js"></script>
+    <script type="module">
+      import bulmaSlider from 'https://cdn.jsdelivr.net/npm/bulma-slider@2.0.5/+esm'
+      window.bulmaSlider = bulmaSlider;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible@1.0.4/dist/js/bulma-collapsible.min.js" 
+            integrity="sha256-2S84Q5HOI1TNks7Mt5PO67KrW2BaFvJwcUEsZMdESug=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible@1.0.4/dist/css/bulma-collapsible.min.css" 
+            integrity="sha256-j00LYVBmp8qo6pZtA5HE6VVlI2/B44rHgPMnfaXB9bU=" crossorigin="anonymous">
     <script src="./particle-life.js"></script>
   </head>
   <body>
-  <section class="section">
-    <div class="container">
-      <h1 class="title is-3">Particle Life</h1>
+    <section class="section">
+      <div class="container">
+        <h1 class="title is-3">Particle Life</h1>
 
-      <p>粒子に命が宿る世界をのんびり眺めるサイトです。<br>飽きたら「次のワールドを生成」を押してください。</p>
-      <div style="text-align:right;max-width:600px"><span id="fps" style="vertical-align:top;margin-left:10px"></span></div>
-      <div class="columns is-desktop">
-        <div class="column is-narrow" style="line-height:1;position:relative;">
-          <help-popup></help-popup>
-          <particles-display width="600" height="600"></particles-display><br>
-          <color-scale-editor width="600" height="40"></color-scale-editor>
-          <div class="top-buttons">
-            <a class="button is-info is-small" id="new-world">次のワールドを生成</a>
-            <a class="button is-info is-small" id="copy-url">このワールドをシェア&nbsp;&nbsp;&nbsp;
-                <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
-            <div class="block" id="copy-url-message">
-              <span class="tag is-success">
-                このワールドへの URL をコピーしました
-              </span>
-            </div>
-            <a class="button is-info is-small" id="full-screen">全画面 &nbsp; <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
-            <div class="block" id="full-screen-message" style="position:absolute;top: -50px;left: 30px;">
-              <span class="tag is-success">
-                画面外のダブルタップで次のワールドを生成できます
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="column is-narrow" id="world-editor">
-          <interaction-editor width="600"></interaction-editor>
-        </div>
-      </div>
+        <app></app>
 
-      <style>
-        body {
-          background: #d6e7f5;
-        }
-        h1.title.is-3 {
-          color: #485fc7;
-        }
-        @media screen and (max-width: 640px) {
-          .section {
-            padding: 1.5rem 1rem;
+        <style>
+          body {
+            background: #d6e7f5;
           }
-          .column {
-            padding: 0.5rem;
+          h1.title.is-3 {
+            color: #485fc7;
           }
-        }
-        .top-buttons {
-          position: relative;
-          margin-bottom:4px;
-          margin-top:4px;
-          overflow-x: clip;
-          max-width: var(--100vw);
-          white-space: nowrap;
-        }
-        @media screen and (max-width: 420px) {
-          .top-buttons {
-            margin-left: -1rem;
+          @media screen and (max-width: 420px) {
+            br.weak {
+              display: none;
+            }
           }
-        }
-        #copy-url-message {
-          display: block;
-          position: absolute;
-          top: -40px;
-          left: 70px;
-          
-        }
-      </style>
+          @media screen and (max-width: 640px) {
+            .section {
+              padding: 1.5rem 1rem;
+            }
+            .column {
+              padding: 0.5rem;
+            }
+          }
+        </style>
 
-      <div class="columns">
-        <plcontrols></plcontrols>
+        <hr>
+
+        <strong>Particle Life</strong> by Osamu TAKEUCHI.<br>
+        The source code is available at <a href="https://github.com/osamutake/particle-life">
+              <ion-icon name="logo-github"></ion-icon> GitHub project site</a> under MIT license.<br>
+        Language: [ <a id="locale-en">en</a> | <a id="locale-ja">ja</a> ]
+        
       </div>
-
-      <div id="video"></div>
-
-      <div class="content">
-      <ul id="help-list">
-      </ul>
-      </div>
-      
-      <hr>
-      
-      <a href="https://github.com/osamutake/particle-life"><ion-icon name="logo-github"></ion-icon> GitHub project site</a>
-    </div>
-  </section>
+    </section>
   </body>
 </html>
