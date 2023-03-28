@@ -31,7 +31,9 @@ export class CanvasRenderer {
     }
   }
 
-  start() {
+  start(resetCounter) {
+    this.counter ??= 0;
+    if(resetCounter) this.counter = 0;
     this.requestStop = false;
     if(!this.requestID)
       this.requestID = window.requestAnimationFrame((ts) => this.frame(ts));
@@ -81,6 +83,7 @@ export class CanvasRenderer {
     if(this.requestStop) 
       return this.requestID = null;
 
+    this.counter++;
     this.render(ts, this.canvas);
 
     // 次のフレームを要求する

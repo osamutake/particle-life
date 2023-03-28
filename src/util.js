@@ -20,6 +20,42 @@ export async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// javascript オブジェクト this がガーベージコレクションされる
+// 時に free すべき member を管理する
+//
+//  finalizer.register(this, [manager.free, [member]], member)
+//
+// のように使う
+// manager が this だと永遠に GC されないので注意
+//
+// 手動で finalize したら
+//
+//  finalizer.unregister(member)
+//
+// すること
+//
+// あるいは、
+//  finalizer.register(this, [manager.free, [member]], this)
+//  finalizer.unregister(this)
+// でも良い
+export const finalizer = new FinalizationRegistry((destructor) => {
+  if(Array.isArray(destructor[0])) {
+    for(let d of destructor) {
+      if(Array.isArray(d[1])) {
+        d[0](...d[1])
+      } else {
+        d[0](d[1])
+      }
+    }
+  } else {
+    if(Array.isArray(destructor[1])) {
+      destructor[0](...destructor[1])
+    } else {
+      destructor[0](destructor[1])
+    }
+  }
+});
+
 // wasm ファイルからモジュールを読み込む
 // メモリアクセス用のヘルパーを含めて返す
 export async function loadWasm(wasmFile) {
@@ -28,17 +64,6 @@ export async function loadWasm(wasmFile) {
 
   // ヒープメモリのユーティリティ
   
-  // javascript オブジェクトがガーベージコレクションされる
-  // 時に free すべきメモリを管理する
-  
-  const finalizer = new FinalizationRegistry((pointer) => {
-    if(Array.isArray(pointer)) {
-      for(let p of pointer) wasm.free(p);
-    } else {
-      wasm.free(pointer);
-    }
-  });
-
   let heap = {};
   heap.u32 = new Uint32Array(wasm.memory.buffer);
   heap.i32 = new Int32Array(wasm.memory.buffer);
@@ -79,7 +104,7 @@ export async function loadWasm(wasmFile) {
       mem.ptr = mem.byteOffset; // シュガー
 
       // ガーベージコレクションされるときに free するよう登録
-      finalizer.register(mem, mem.ptr);
+      finalizer.register(mem, [wasm.free, [mem.ptr]], mem);
       
       // 手動で free するための関数を用意
       mem.free = () => {
@@ -94,9 +119,10 @@ export async function loadWasm(wasmFile) {
 }
 
 // obj のデストラクタを呼ぶ
-export function destruct(obj)
+export function destruct(...objs)
 {
-  if(obj && obj.destructor) obj.destructor();
+  for(const obj of objs)
+    if(obj && obj.destructor) obj.destructor();
 }
 
 // EventTarget として働くようにする
@@ -114,41 +140,12 @@ export function implementEventTarget(obj) {
     eventTarget.dispatchEvent( new CustomEvent(event, { detail: detail_content }))
 }
 
-// obj のプロキシを作る
-// プロパティの変更を検出可能になる
-export function createProxy(obj, updateFunc) {
-  let proxy = {}
-  for(let k of Object.keys(obj)) {
-    Object.defineProperty(proxy, k, {
-      get() { return obj[k]; },
-      set(v) { updateFunc(obj, Object.fromEntries([[k, v]])); }
-    });
-  }
-  return proxy;
-}
-
 export function int2hex(i) {
   return ("000"+(((i|0) >>> 16)&0xffff).toString(16)).slice(-4) +
          ("000"+(((i|0)       )&0xffff).toString(16)).slice(-4) ;
 }
 
 //////////////////////////////////////////////////// WebGL Helpers
-
-// type : gl.VERTEX_SHADER / gl.FRAGMENT_SHADER
-function glCreateShader(gl, src, type, program = null) {
-  var shader = gl.createShader(type);
-  gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-  if(!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) 
-    throw new Error(gl.getShaderInfoLog(shader));
-  if(!program) 
-    return shader;
-  
-    // 割り当てまで行う
-  gl.attachShader(program, shader); 
-  gl.deleteShader(shader);  // いらなくなったら消してほしいと頼んでおく
-  return null;
-}
 
 // attribute のラッパークラス
 class glAttribute
@@ -160,7 +157,8 @@ class glAttribute
   }
   
   // ポインタの割り当て
-  ptr(vbuffer, size, type, normalized, stride, offset) {
+  set ptr(arg) {
+    const [vbuffer, size, type, normalized, stride, offset] = arg;
     vbuffer.bind(()=> {
       this.gl.vertexAttribPointer(this.loc, size, type, normalized, stride, offset);
       this.gl.enableVertexAttribArray(this.loc);
@@ -168,7 +166,8 @@ class glAttribute
   }
   
   // 浮動小数点数(1～４個)の書き込み
-  f(...arg) {
+  set f(arg) {
+    if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.vertexAttrib1fv(this.loc, arg); break;
       case 2: this.gl.vertexAttrib2fv(this.loc, arg); break;
@@ -189,7 +188,8 @@ class glUniform
   }
   
   // 浮動小数点数(1～４個)の書き込み
-  f(...arg) {
+  set f(arg) {
+    if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.uniform1fv(this.loc, arg); break;
       case 2: this.gl.uniform2fv(this.loc, arg); break;
@@ -200,7 +200,8 @@ class glUniform
   }
   
   // 整数値(1～４個)の書き込み
-  i(...arg) {
+  set i(arg) {
+    if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.uniform1iv(this.loc, arg); break;
       case 2: this.gl.uniform2iv(this.loc, arg); break;
@@ -211,13 +212,21 @@ class glUniform
   }
   
   // 浮動小数行列の書き込み (2x2, 3x3, 4x4)
-  mat(values, transpose = false) {
+  #matCore(transpose, values) {
     switch(values.length) {
       case  4: this.gl.uniformMatrix2fv(this.loc, transpose, values); break;
       case  9: this.gl.uniformMatrix3fv(this.loc, transpose, values); break;
       case 16: this.gl.uniformMatrix4fv(this.loc, transpose, values); break;
       default: throw new Error(`${arg.length} parameters are given expecting 4 or 9 or 16`);
     }
+  }
+
+  set mat(values) {
+    this.#matCore(false, values)
+  }
+
+  set matTrans(values) {
+    this.#matCore(true, values)
   }
 }
 
@@ -228,8 +237,8 @@ export class glProgram
   constructor(gl, vsrc, fsrc, attrs = [], unifs = []) {
     this.gl = gl;
     this.program = gl.createProgram();
-    glCreateShader(gl, vsrc, gl.VERTEX_SHADER,   this.program);
-    glCreateShader(gl, fsrc, gl.FRAGMENT_SHADER, this.program);
+    this.#glCreateShader(gl, vsrc, gl.VERTEX_SHADER,   this.program);
+    this.#glCreateShader(gl, fsrc, gl.FRAGMENT_SHADER, this.program);
     gl.linkProgram(this.program);
     if(!gl.getProgramParameter(this.program, gl.LINK_STATUS))
       throw new Error(gl.getProgramInfoLog(this.program));
@@ -250,9 +259,25 @@ export class glProgram
     this.gl.deleteProgram(this.program);
   }
 
+  // type : gl.VERTEX_SHADER / gl.FRAGMENT_SHADER
+  #glCreateShader(gl, src, type, program = null) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if(!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) 
+      throw new Error(gl.getShaderInfoLog(shader));
+    if(!program) 
+      return shader;
+    
+    // 割り当てまで行う
+    gl.attachShader(program, shader); 
+    gl.deleteShader(shader);  // いらなくなったら消してほしいと頼んでおく
+    return null;
+  }
+  
   use() {
     this.gl.useProgram(this.program);
-  };
+  }
 }
 
 // type = gl.ARRAY_BUFFER / gl.ELEMENT_ARRAY_BUFFER
@@ -263,9 +288,12 @@ export class glBuffer
     this.gl = gl;
     this.type = type;
     this.buffer = gl.createBuffer();
+
+    util.finalizer.register(this, [gl.deleteBuffer, this.buffer], this)
   }
 
   destructor() {  // 手動で呼ぶ必要がある
+    util.finalizer.unregister(this);
     this.gl.deleteBuffer(this.buffer);
   }
 
@@ -287,7 +315,7 @@ export class glBuffer
     this.bind(()=>{
       this.gl.bufferData(this.type, float32Array, mode);
     });
-    this.dataLoaded = float32Array.length;
+    this.dataLength = float32Array.length;
   }
   
   subData(offset, float32Array = null) {
@@ -319,12 +347,27 @@ export class glFrameBuffer
       
       // テクスチャ
       this.texture = gl.createTexture();
-      this.resizeTeture();
+      this.#resizeTeture();
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
     });
+
+    if(this.depthBuffer) {
+      util.finalizer.register(this, [
+        [gl.deleteFramebuffer, this.frameBuffer],
+        [gl.deleteRenderbuffer, this.depthBuffer],
+        [gl.deleteTexture, this.texture],
+      ], this)
+    } else {
+      util.finalizer.register(this, [
+        [gl.deleteFramebuffer, this.frameBuffer],
+        [gl.deleteTexture, this.texture],
+      ], this)
+    }
   }
 
   destructor() {  // 手動で呼ぶ必要がある
+    util.finalizer.unregister(this);
+
     if(this.depthBuffer)
       this.gl.deleteRenderBuffer(this.depthBuffer);
     if(this.teture)
@@ -336,11 +379,11 @@ export class glFrameBuffer
     if(this.width == width && this.height == height) return;
     this.width = width;
     this.height = height;
-    this.resizeDepthBuffer();
-    this.resizeTeture();
+    this.#resizeDepthBuffer();
+    this.#resizeTeture();
   }
 
-  resizeDepthBuffer() {
+  #resizeDepthBuffer() {
     const {gl, depthBuffer, width, height} = this;
     if(depthBuffer) {
       gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
@@ -352,7 +395,7 @@ export class glFrameBuffer
     }
   }
 
-  resizeTeture() {
+  #resizeTeture() {
     const {gl, texture, width, height} = this;
     gl.bindTexture(gl.TEXTURE_2D, texture);
     try {
@@ -382,7 +425,7 @@ export class glFrameBuffer
   }
 };
 
-// テクスチャを 2D で加工して表示するためのシェーダ
+// 与えられたテクスチャを 2D で加工して表示するためのシェーダ
 export class glTextureRenderer
 {
   // fsrc の u_texture にテクスチャが読み込まれる
@@ -421,36 +464,46 @@ export class glTextureRenderer
         gl.STATIC_DRAW);
   }
 
+  destructor() {
+    util.destruct(this.program);
+    util.destruct(this.vbuffer);
+  }
+
   render(n_texture, texture, preparation, destBuffer = null) {
+    // 出力先がフレームバッファーなら割り当てる
+    if(destBuffer) {
+      destBuffer.bind(()=>
+        this.#renderCore(n_texture, texture, preparation)
+      );
+    } else {
+      this.#renderCore(n_texture, texture, preparation)
+    }
+  }
+
+  #renderCore(n_texture, texture, preparation) {
     const {gl, program, vbuffer} = this;
     program.use();
-    program.u_texture.i(n_texture);
+    program.u_texture.i = n_texture;
 
-    // 出力先がフレームバッファーなら割り当てる
-    if(destBuffer) destBuffer.bind();
-    try {
-      // gl.TEXTURE0 の 0 に n_texture をあてはめる
-      gl.activeTexture(gl[`TEXTURE${n_texture}`] || gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-    
-      // コールバック
-      preparation(gl, program);
+    // gl.TEXTUREn の n に n_texture をあてはめる
+    gl.activeTexture(gl[`TEXTURE${n_texture}`]);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+  
+    // コールバック
+    preparation(gl, program);
 
-//      // canvas を初期化
-//      gl.clearColor(0.0, 0.0, 0.0, 1.0);
-//      // gl.clearDepth(1.0);
-//      gl.disable(gl.DEPTH_TEST);
-//      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+//  // canvas を初期化
+//  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+//  // gl.clearDepth(1.0);
+//  gl.disable(gl.DEPTH_TEST);
+//  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 //
-//      必要な u_ 変数を設定したりとか
+//  必要な u_ 変数を設定したりとか
 //
-      // 頂点データ
-      program.a_pos.ptr(vbuffer, 2, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-      gl.flush();
-    } finally {
-      if(destBuffer) destBuffer.unbind();
-    }
+    // 頂点データ
+    program.a_pos.ptr = [vbuffer, 2, gl.FLOAT, false, 0, 0];
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.flush();
   }
 }
 

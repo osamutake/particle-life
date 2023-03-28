@@ -24,7 +24,7 @@ export default {
     '画面外のダブルタップで次のワールドを生成できます':
     'Double-tap on the periphery to move to the next world.',
 
-    // plcontrols.riot
+    // pl-controls.riot
 
     'ワールド設定':
     'World config.',
@@ -159,6 +159,9 @@ export default {
 
     'id_rowdiv説明':
     'RowDiv is an optimization parameter for interaction calculation. Giving 3 or 4 will be the fastest. It only affects the calculation speed and should not affect the calculation result.',
+
+    'id_canvasMode説明':
+    "When WebGL is unavailable, Firefox''s rendering becomes very slow. You can choose '2d (source-over)' for Canvas Rendering Mode to make it faster at the expense of rendring quality.",
 
     '#_arg1_ が #_arg2_ から受ける力 (近 _arg3_, 遠 _arg4_)':
     'Force from #_arg2_ to #_arg1_ (near _arg3_, far _arg4_)',

@@ -56,49 +56,45 @@
       > div {
         max-width: 100%;
       }
+    }
 
-      a.button {
-        width: var(--ctrl-height);
-        height: var(--ctrl-height);
-      }
-   
-      .has-canvas {
-        width: calc(100% - var(--ctrl-height));
-      }
+    a.button {
+      width: var(--ctrl-height);
+      height: var(--ctrl-height);
+    }
+  
+    .has-canvas {
+      width: calc(100% - var(--ctrl-height));
+    }
 
-      canvas {
-        width: 100%;
-        height: var(--ctrl-height);
-        margin: 0px;
-        touch-action: none;
-        cursor: all-scroll;
-      }
+    canvas {
+      width: 100%;
+      height: var(--ctrl-height);
+      margin: 0px;
+      touch-action: none;
+      cursor: all-scroll;
     }
   </style>
   
   <script>
     export default {
       onBeforeMount(props, state) {
-        this.state = {
+        Object.assign(state, {
           iscale: 0,
           offset: 0,
           scale:  1,
           mouseDown: false,
-        }
+        });
 
         props.intf.update = (...args) =>
           this.update(...args);
       },
 
-      onMounted() {
-        // EventTarget としての動作を行う
-        util.implementEventTarget(this)
-        this.addEventListener("update", this.props.onUpdate)
-
-        if(this.props.width)
-          this.root.style.setProperty('--ctrl-width', `${this.props.width}px`)
-        if(this.props.height)
-          this.root.style.setProperty('--ctrl-height', `${this.props.height}px`)
+      onMounted(props, state) {
+        if(props.width)
+          this.root.style.setProperty('--ctrl-width', `${props.width}px`)
+        if(props.height)
+          this.root.style.setProperty('--ctrl-height', `${props.height}px`)
       
         const canvas = this.$("canvas")
         const g = canvas.getContext("2d")
@@ -107,7 +103,6 @@
         this.update()
         
         // ドラッグ動作を規定
-
         this.defineDragBehavior(canvas, {
           down: (e, x, y) => {
             e.preventDefault()
@@ -119,7 +114,7 @@
 
             const [dx, dy] = [newX - oldX, newY - oldY]
             this.state.scale /= 1 + dy / canvas.clientHeight / 8
-            this.state.offset -= dx / canvas.clientWidth / this.state.scale / 2
+            this.state.offset -= dx / canvas.clientWidth / this.state.scale
             this.update()
           },
           up: (e, x, y) => {
@@ -148,11 +143,17 @@
         const factor = 1 / (1 + Math.round((state.scale-1) * 16) / 16);
         const offset = Math.round(state.offset * 256) / 256;
 
-        this.state.colorFunc = (x) => {
+        state.colorFunc = (x) => {
           x = factor * x + offset;
           return scale.color(x - Math.floor(x));
         }
+        this.render();
 
+        // 数値を色に直す関数（カラースケール）を通知する
+        this.dispatchEvent("update", state)
+      },
+
+      render() {
         const canvas = this.$("canvas");
         const g = canvas.getContext("2d");
         const n = 200
@@ -161,9 +162,6 @@
           g.fillStyle = this.state.colorFunc(x)
           g.fillRect(x, 0, x + 1.1 / n, 1)
         }
-        
-        // 数値を色に直す関数（カラースケール）を通知する
-        this.dispatchEvent("update", this.state)
       },
     }
   </script>

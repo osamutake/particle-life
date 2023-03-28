@@ -107,15 +107,15 @@
   </style>
 
   <script>
+    import helpContents from '../help-contents.js'
+
     export default {
       onBeforeMount(props, state) {
         this.i18n = i18n;
-        this.state = {};
         this.onBeforeUpdate(props, state);
       },
 
       onMounted() {
-        this.update();
         i18n.addEventListener('update', this.onI18nUpdate)
       },
 
@@ -129,16 +129,16 @@
 
       onBeforeUpdate(props, state) {
         props.intf.show = ()=> this.show();
-        if(state.messages != props.messages) {
-          this.state.messages = props.messages;
-          this.state.n = props.messages.length;
-          this.state.i = 0;
+        if(state.messages != helpContents) {
+          state.messages = helpContents;
+          state.n = helpContents.length;
+          state.i = 0;
         }
         if(state.i >= state.n) this.close();
-        if(state.i <  0      ) this.state.i = 0;
+        if(state.i <  0      ) state.i = 0;
 
         this.messages = [];
-        this.state.messages.forEach( (message) =>
+        state.messages.forEach( (message) =>
           i18n.t(message[0], message[1]+"_help").split(/<br>[\s\n]*<br>/).forEach( (message) => {
             this.messages.push(message);
           })
@@ -146,28 +146,13 @@
       },
       
       show() {
+        if(this.root.classList.contains("shown"))
+          return;
+
         const scrollTo = document.querySelector('app').getBoundingClientRect().top;
         window.scrollTo(0, scrollTo + window.scrollY);
         
-        if(!this.keydown) {
-          this.keydown = (e) => {
-            if(e.key === 'Escape') {
-              this.close();
-            }
-            if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
-              e.preventDefault();
-              this.state.i += 1;
-              this.update();
-            }
-            if(e.key === 'ArrowLeft') {
-              e.preventDefault();
-              this.state.i -= 1;
-              this.update();
-            }
-          };
-          document.addEventListener('keydown', this.keydown);
-        }
-        
+        document.addEventListener('keydown', this.keydown);
         this.root.classList.add("shown");
         this.state.i = 0;
         this.update();
@@ -175,15 +160,28 @@
 
       close() {
         document.removeEventListener('keydown', this.keydown);
-        this.keydown = null;
-
         this.root.classList.remove("shown");
-        this.state.i = 0;
       },
       
+      keydown(e) {
+        if(e.key === 'Escape') {
+          this.close();
+        }
+        if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.state.i += 1;
+          this.update();
+        }
+        if(e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.state.i -= 1;
+          this.update();
+        }
+      },
+
       onUpdated(props, state) {
         const arrow = this.$('.arrow');
-        const targetId = this.state.messages[this.state.i][1];
+        const targetId = state.messages[state.i][1];
         if(!targetId) {
           arrow.style.display = "none";
           return;
@@ -191,30 +189,42 @@
         
         // 表示しておかないと offsetTop を取得できない
         // https://stackoverflow.com/questions/42356461/offsettop-property-on-element-with-display-none-is-always-0
-        arrow.style.display = "block";
-        
         let target = document.getElementById(targetId);
-        let targetRect = target.getBoundingClientRect();
-        let targetTop = targetRect.top - 50;
-        let targetLeft = targetRect.left + targetRect.width / 2 - 30;
-        let arrowRect = arrow.getBoundingClientRect();
-        arrow.style.top  = (targetTop  + arrow.offsetTop  - arrowRect.top ) + "px";
-        arrow.style.left = (targetLeft + arrow.offsetLeft - arrowRect.left) + "px";
-        
-        this.blinkElement(arrow);
+        if(target) {
+          let targetRect = target.getBoundingClientRect();
+          let targetTop = targetRect.top - 50;
+          let targetLeft = targetRect.left + targetRect.width / 2 - 30;
+          let arrowRect = arrow.getBoundingClientRect();
+          arrow.style.display = "block";
+          arrow.style.top  = (targetTop  + arrow.offsetTop  - arrowRect.top ) + "px";
+          arrow.style.left = (targetLeft + arrow.offsetLeft - arrowRect.left) + "px";
+          this.blinkElement(arrow);
+        } else {
+          this.cancelBlinkElement();
+          arrow.style.display = "none";
+        }
       },
       
-      async blinkElement(elem, display = "block") {
-        if(this.blinking) return;
+      cancelBlinkElement: ()=> 0,
 
-        this.blinking = true;
+      async blinkElement(elem, display = "block") {
+        this.cancelBlinkElement();
+
+        let cancelRequested = false;
+        this.cancelBlinkElement = ()=>{
+          cancelRequested = true;
+          elem.style.display = display;
+        }
+
         for(let i = 0; i < 8; i++){
           elem.style.display = "none";
           await util.sleep(200);
+          if(cancelRequested) break;
+          
           elem.style.display = display;
           await util.sleep(600);
+          if(cancelRequested) break;
         }
-        this.blinking = false;
       }
     }
   </script>

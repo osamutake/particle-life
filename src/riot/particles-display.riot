@@ -36,21 +36,22 @@
       > div {
         margin: 0px;
       }
+    }
+    canvas {
+      touch-action: none;
+      margin: 0px;
+      max-width: var(--100vw);
+      max-height: var(--100vw);
+    }
+    @media screen and (max-width: 640px) {
       canvas {
-        touch-action: none;
-        margin: 0px;
-        max-width: var(--100vw);
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
       }
-      @media screen and (max-width: 640px) {
-        canvas {
-          margin-left: -0.75rem;
-          margin-right: -0.75rem;
-        }
-      }
-      @media screen and (min-width: 1000px) {
-        canvas {
-          min-width: 600px;
-        }
+    }
+    @media screen and (min-width: 1000px) {
+      canvas {
+        min-width: 600px;
       }
     }
   </style>
@@ -58,12 +59,12 @@
   <script>
     export default {
       onBeforeMount(props, state) {
-        this.state = {
+        Object.assign(state, {
           offsetX: 0,
           offsetY: 0,
           tail: 0,
           particleSize: 3
-        }
+        })
 
         props.intf.update = (...args) =>
           this.update(...args);
@@ -75,28 +76,34 @@
       },
 
       onMounted() {
-        util.implementEventTarget(this);
+        this.registerPointerHandlers()
+      },
+
+      registerPointerHandlers() {
+        const canvas = this.$("#particles-display");
 
         // マウス座標から x, y 座標 [-0.5, 0.5) に直す
+        const mouse2xySub = (mouseX, mouseY) => {
+          const size = Math.min(canvas.clientWidth, canvas.clientHeight)
+          const ox = (canvas.clientWidth -  size) / 2
+          const oy = (canvas.clientHeight - size) / 2
+          const x = (mouseX - ox) / size + this.state.offsetX
+          const y = (mouseY - oy) / size + this.state.offsetY
+          return [x, y]
+        };
+
+        // [-0.5, 0.5) に巻き取る
         const mouse2xy = (mouseX, mouseY) => {
-          const size = Math.min(canvas.clientWidth, canvas.clientHeight);
-          const ox = (canvas.clientWidth - size) / 2;
-          const oy = (canvas.clientHeight - size) / 2;
-          const x = (mouseX - ox) / size + this.state.offsetX;
-          const y = (mouseY - oy) / size + this.state.offsetY;
-          return [x - Math.round(x), y - Math.round(y)];
+          const [x, y] = mouse2xySub(mouseX, mouseY)
+          return [x - Math.round(x), y - Math.round(y)]
         };
-          
-        const mouse2xyIn = (mouseX, mouseY) => {
-          const size = Math.min(canvas.clientWidth, canvas.clientHeight);
-          const ox = (canvas.clientWidth - size) / 2;
-          const oy = (canvas.clientHeight - size) / 2;
-          const x = (mouseX - ox) / size;
-          const y = (mouseY - oy) / size;
-          return 0 < x && x < 1 && 0 < y && y < 1;
+
+        // 中央領域にあるかどうか
+        const mouseInDisplay = (mouseX, mouseY) => {
+          const [x, y] = mouse2xySub(mouseX, mouseY)
+          return 0 < x && x < 1 && 0 < y && y < 1
         };
-          
-        const canvas = this.$("#particles-display");
+        
         let canvasTapCount = 0;
         let mouseDoubleDown = false;
         this.defineDragBehavior( canvas, {
@@ -107,8 +114,8 @@
               setTimeout( () =>{ canvasTapCount = 0; }, 350 ) ;
             } else {                    // ダブルタップ
               canvasTapCount = 0 ;
-              if(!mouse2xyIn(x,y)){
-                this.props.onRestart();
+              if(!mouseInDisplay(x,y)){
+                this.dispatchEvent("restart");
                 return;
               }
               mouseDoubleDown = true;
@@ -136,48 +143,51 @@
             [this.props.intf.repelX, this.props.intf.repelY] = [NaN, NaN]
           }
         });
-
-        this.update();
       },
 
       onUpdated(props, state) {
         const screens = {
-          XS: 400, S: 600, M: 900, L: 1200, XL: 1500, F: 0
+          XS: 400, S: 600, M: 900, L: 1200, XL: 1500, 
+          F: Math.min(window.screen.width, window.screen.height)
         }
+        this.state.size = screens[this.state.screen] ?? 600
+        let [w, h] = [this.state.size, this.state.size]
+        if(this.state.screen == "F")
+          [w, h] = [window.screen.width, window.screen.height]
         
+        // 表示サイズはこちらで指定
         let canvas = this.$('canvas');
-        this.state.size = screens[this.state.screen] || 600;
-        if(this.state.screen == "F") {
-          // https://stackoverflow.com/questions/2242086/how-to-detect-the-screen-resolution-with-javascript
-          const [w, h] = [window.screen.width  * window.devicePixelRatio,
-                          window.screen.height * window.devicePixelRatio]
-          this.state.size = Math.min(w, h);
-          [canvas.width, canvas.height] = [w, h];
-          const checkWebgl = document.getElementById('webgl');
-          if(!checkWebgl.checked) // webgl が使えないときは正方形のままで
-            [canvas.width, canvas.height] = [this.state.size, this.state.size]
-        } else {
-          [canvas.width, canvas.height] = [this.state.size, this.state.size]
-        }
-        this.render();
+        [canvas.style.width, canvas.style.height] = [w + "px", h + "px"];
+
+        // 描画解像度は実デバイスに合わせる
+        const r = window.devicePixelRatio;
+        this.state.size *= r;
+        [canvas.width, canvas.height] = [w * r, h * r]
+
+        this.render()
+      },
+
+      // 粒子サイズは画面サイズ相対
+      calcParticleSize() {
+        return this.state.particleSize / 600 * this.state.size;
       },
 
       // WebGL が使えない場合の通常の描画
-      render_2d(g, world, colorFunc) {
+      render2dCore(g, world, colorFunc) {
         let canvas = this.$("canvas");
-        g.scale(canvas.width, canvas.height);
+        g.setTransform(1,0,0,1,0,0);
+        g.scale(this.state.size, this.state.size);
         g.translate(0.5, 0.5);
 
         // パレットを作成
         const n = world.nspecies;
         const palette = [...Array(n)].map((_, i) => colorFunc(i/n));
 
-        // 粒子の描画
-        let size = this.calcParticleSize();
-        const r = size / canvas.width / 2;
+        // 粒子半径
+        let particleSize = this.calcParticleSize();
+        const r = particleSize / this.state.size / 2;
 
-        g.globalCompositeOperation = "screen"
-
+        // 境界から r 以内の粒子は反対側にも描く必要がある
         world.particles.forEach( (sp, x, y) => {
           const draw2 = (_x, _y) => {
             g.beginPath();
@@ -203,17 +213,17 @@
 
       /// source を g のスクロール位置に描画する
       drawImageWithOffset(g, source) {
-        const [w, h] = [source.width, source.height];
-        const [dx, dy] = [-this.state.offsetX * w, -this.state.offsetY * h]
+        const s = this.state.size;
+        const [dx, dy] = [-this.state.offsetX * s, -this.state.offsetY * s]
 
         const region = (sx, sy) => {  // ４象限を計算する
-          const x1 = (w - dx) % w; const y1 = (h - dy) % h; 
-          const x2 = (dx + w) % w; const y2 = (dy + h) % h; 
+          const x1 = (s - dx) % s; const y1 = (s - dy) % s; 
+          const x2 = (dx + s) % s; const y2 = (dy + s) % s; 
           return [
-            Math.min(x1, sx ? 0 : w),  Math.min(y1, sy ? 0 : h),
-            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)), 
-            Math.min(x2, sx ? w : 0),  Math.min(y2, sy ? h : 0),
-            Math.abs(x1-(sx ? 0 : w)), Math.abs(y1-(sy ? 0 : h)) ];
+            Math.min(x1, sx ? 0 : s),  Math.min(y1, sy ? 0 : s),
+            Math.abs(x1-(sx ? 0 : s)), Math.abs(y1-(sy ? 0 : s)), 
+            Math.min(x2, sx ? s : 0),  Math.min(y2, sy ? s : 0),
+            Math.abs(x1-(sx ? 0 : s)), Math.abs(y1-(sy ? 0 : s)) ];
         }
         g.drawImage(source, ...region(0, 0));
         g.drawImage(source, ...region(1, 0));
@@ -221,18 +231,22 @@
         g.drawImage(source, ...region(1, 1));
       },
 
-      // 粒子サイズは画面サイズ相対にしておく
-      calcParticleSize() {
-        const canvas = this.$('canvas');
-        const size = Math.min(canvas.width, canvas.height);
-        return this.state.particleSize / 600 * size;
-      },
-
-      // 粒子表示クラス
-      ParticleRendereGL: class {
+      // WebGL 粒子表示クラス
+      ParticleRendererGL: class {
         constructor(gl) {
           this.gl = gl;
           this.program = this.createProgram(gl);
+          
+          // vertices buffer を準備 (データはまだ入れない)
+          this.vbuffer = new util.glBuffer(gl, gl.ARRAY_BUFFER);
+        }
+
+        destructor() {
+          if(this.texture) {
+            util.finalizer.unregister(this.texture)
+            this.gl.deleteTexture(this.texture);
+          }
+          util.destruct(this.program, this.vbuffer);
         }
         
         /// program 作成
@@ -284,9 +298,6 @@
           );
           program.use();
 
-          // verticle buffer を準備 (データはまだ入れない)
-          program.vbuffer = new util.glBuffer(gl, gl.ARRAY_BUFFER);
-
           return program;
         }
         
@@ -302,6 +313,7 @@
               this.texture = null;
             } else {
               texture = gl.createTexture();
+              util.finalizer.register(this, [gl.deleteTexture, [texture]], texture)
             }
             gl.bindTexture(gl.TEXTURE_2D, texture);
               gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -315,105 +327,227 @@
         }
         
         /// render
-        // n_texture < 0 ならテクスチャを使わずに描画
-        render(n_texture, w, h, world, colorFunc, particleSize, frameBuffer = null) {
-          if(frameBuffer) frameBuffer.bind(); // 与えられていればバッファーへ描画する
-          try {
-            const {gl, program, texture} = this;
-            program.use();
-
-            if(texture && n_texture >= 0) {
-              program.u_texture.i(n_texture); // n 番を指定
-              gl.activeTexture(gl[`TEXTURE${n_texture}`]); // gl.TEXTUREn
-              gl.bindTexture(gl.TEXTURE_2D, texture);
-              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-              program.u_use_texture.i(true);
-            } else {
-              program.u_use_texture.i(false);
-            }
-
-            gl.viewport(0, 0, w, h);
-            gl.disable(gl.DEPTH_TEST);
-
-            // https://stackoverflow.com/questions/39341564/webgl-how-to-correctly-blend-alpha-channel-png
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE ); // screen
-            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-
-            // 一旦消去
-            gl.clearColor(0, 0, 0, 0);  // 背景色は透明
-            gl.clear(gl.COLOR_BUFFER_BIT);
-
-            this.program.u_point_size.f(Number.parseFloat(particleSize) + 0.25);
-
-            let palette = [...Array(world.nspecies)].map((_, i) => {
-                const c = colorFunc(i/world.nspecies);
-                return [ parseInt(c.slice(1, 3), 16), 
-                         parseInt(c.slice(3, 5), 16), 
-                         parseInt(c.slice(5, 7), 16) ]
-              }
+        // nTexture < 0 ならテクスチャを使わずに描画
+        render(nTexture, w, h, world, colorFunc, particleSize, frameBuffer = null) {
+          if(frameBuffer) { // 与えられていればバッファーへ描画する
+            frameBuffer.bind(()=>
+              this.#renderCore(nTexture, w, h, world, colorFunc, particleSize)
             );
-
-            const [vertices, nvertices] = 
-              world.particles.vertices(palette, particleSize/w);
-            if((program.vbuffer.dataLoaded || 0) < vertices.length) {
-              program.vbuffer.data(vertices, gl.DYNAMIC_DRAW);
-            } else {
-              program.vbuffer.subData(0, vertices);
-            }
-            let size = 2; // sizeof(SHORT);  
-            //                                 items                 stride    offset
-            program.a_position.ptr(this.program.vbuffer, 2, gl.SHORT, true, size * 5, 0       );
-            program.a_color.ptr(   this.program.vbuffer, 3, gl.SHORT, true, size * 5, size * 2);
-            program.vbuffer.bind(()=>{
-              gl.drawArrays(gl.POINTS, 0, nvertices);
-            });
-          } finally {
-            if(frameBuffer) frameBuffer.unbind();
+          } else {
+            this.#renderCore(nTexture, w, h, world, colorFunc, particleSize)
           }
         }
+
+        #renderCore(nTexture, w, h, world, colorFunc, particleSize) {
+          const {gl, program, vbuffer, texture} = this;
+          program.use();
+
+          if(texture && nTexture >= 0) {
+            program.u_texture.i = nTexture; // n 番を指定
+            gl.activeTexture(gl[`TEXTURE${nTexture}`]); // gl.TEXTUREn
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            program.u_use_texture.i = true;
+          } else {
+            program.u_use_texture.i = false;
+          }
+
+          gl.viewport(0, 0, w, h);
+          gl.disable(gl.DEPTH_TEST);
+
+          // https://stackoverflow.com/questions/39341564/webgl-how-to-correctly-blend-alpha-channel-png
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE ); // screen
+          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+
+          // 一旦消去
+          gl.clearColor(0, 0, 0, 0);  // 背景色は透明 (!= 黒)
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          program.u_point_size.f = Number.parseFloat(particleSize) + 0.25;
+
+          // "#000000" 形式の配色を数値に直す
+          let palette = [...Array(world.nspecies)].map((_, i) => {
+              const c = colorFunc(i/world.nspecies);
+              return [ parseInt(c.slice(1, 3), 16),   // r
+                        parseInt(c.slice(3, 5), 16),   // g
+                        parseInt(c.slice(5, 7), 16) ]  // b
+            }
+          );
+
+          const [vertices, nvertices] = 
+            world.particles.vertices(palette, particleSize/w);
+          if((vbuffer.dataLength || 0) < vertices.length) {
+            vbuffer.data(vertices, gl.DYNAMIC_DRAW);
+          } else {
+            vbuffer.subData(0, vertices);
+          }
+          let size = 2; // sizeof(SHORT);  
+          //                               items                 stride    offset
+          program.a_position.ptr = [vbuffer, 2, gl.SHORT, true, size * 5, 0       ];
+          program.a_color.ptr    = [vbuffer, 3, gl.SHORT, true, size * 5, size * 2];
+          vbuffer.bind(()=>{
+            gl.drawArrays(gl.POINTS, 0, nvertices);
+          });
+        }
+      },
+
+      recreateCanvas(canvas) {
+        const clone = canvas.cloneNode();
+        canvas.replaceWith(clone);
+        canvas.width = 0;   // こうしておくと早くメモリが解放される？？？
+        canvas.height = 0;  // https://tech.mobilefactory.jp/entry/2019/12/17/143000
+        this.registerPointerHandlers();
+        return clone;
       },
 
       /// 描画する
       render() {
-
         const world = this.props.intf.world();
         const colorFunc = this.props.intf.colorFunc();
         if(!world || !colorFunc) return;
         if(world.recreating) return;
 
-        const canvas = this.$("canvas");
-        
-        const checkWebgl = document.getElementById('webgl');
-        if(checkWebgl.checked) {
-          const gl = canvas.getContext('webgl');
-          if(gl && checkWebgl.checked) {
-            this.render_gl(gl, canvas, world, colorFunc);
+        let canvas = this.$("canvas");
+        const canvasMode = document.getElementById('canvas-mode');
+        if(canvasMode.value == "webgl") {
+          let gl = canvas.getContext('webgl');
+          if(!gl) {
+            // 2d 描画した後は一回作り直さないといけない
+            canvas = this.recreateCanvas(canvas);
+            gl = canvas.getContext('webgl');
+          }
+          if(gl) {
+            if(this.buffer2) {
+              this.buffer2.width = 0;
+              delete this.buffer2;
+              this.buffer3.width = 0;
+              delete this.buffer3;
+            }
+            this.renderGL(gl, canvas, world, colorFunc);
             return;
           }
-        }
+          // WebGL が使えない
+          canvasMode.value = "screen";
+          document.querySelector('#canvas-mode option[value="webgl"]').disabled = true;
+        } 
 
-        // if(!gl) { // WebGL が使えない
-        //   checkWebgl.checked = "";
-        //   checkWebgl.disabled = "disabled";
-        // }
+        // 古いものがあれば消しておく
+        util.destruct(
+          this.rendererGL,
+          this.frameBuffer1,
+          this.frameBuffer2A,
+          this.frameBuffer2B,
+          this.frameRendererTail,
+          this.frameRendererOffset,
+        );
+        delete this.rendererGL;
+        delete this.frameBuffer1;
+        delete this.frameBuffer2A;
+        delete this.frameBuffer2B;
+        delete this.frameRendererTail;
+        delete this.frameRendererOffset;
+
+        // 2d context を得る
+        let g = canvas.getContext('2d');
+        // WebGL で描画した後は一回作り直さないといけない
+        if(!g) {
+          canvas = this.recreateCanvas(canvas);
+          g = canvas.getContext('2d');
+        }
+        if(!g) {
+          throw new Error('canvas 2d context is not available');
+        }
+        this.render2d(g, canvas, world, colorFunc);
+      },
+
+      render2d(g, canvas, world, colorFunc) {
+        const s = this.state.size;
+        const w = canvas.width;
+        const h = canvas.height;
 
         // this.buffer2 に offset を無視した画像を作る
-
-        // まず尾を引かせる背景処理
-        if(!this.buffer2)
+        if(!this.buffer2) {
           this.buffer2 = canvas.cloneNode();
-        if(this.buffer2.width != canvas.width ||
-           this.buffer2.height != canvas.height) {
-            this.buffer2.width = canvas.width;
-            this.buffer2.height = canvas.height;
+          this.buffer3 = canvas.cloneNode();
+        } else
+        if(this.buffer2.width  != w || this.buffer2.height != h) {
+            this.buffer2.width = w; this.buffer2.height = h;
+            this.buffer3.width = w; this.buffer3.height = h;
         }
-        const g2 = this.buffer2.getContext('2d');
-        g2.setTransform(1, 0, 0, 1, 0, 0);
 
+        // まずは普通に描画
+        const g3 = this.buffer3.getContext('2d');
+        g3.globalCompositeOperation = "source-over";
+        g3.setTransform(1, 0, 0, 1, 0, 0);
+        g3.fillStyle = "#000000";
+        g3.fillRect(0, 0, w, h);
+
+        // screen モードでの描画は Firefox で話にならないほど
+        // 遅くなるのだけれど、そもそも WebGL が使えない環境の
+        // Firefox をサポートする意味があるのかどうかが疑わしいので
+        // 気にせずデフォルト動作を screen にしておく
+
+        const canvasMode = document.getElementById('canvas-mode');
+        if(canvasMode.value == "screen") {
+          g3.globalCompositeOperation = "screen";
+        } else {
+          g3.globalCompositeOperation = "source-over";
+        }
+        this.render2dCore(g3, world, colorFunc);
+
+        // 尾を引かせる背景処理
+        const g2 = this.buffer2.getContext('2d');
+        this.render2dBackground(g2, w, h)
+
+        // lighten モードの描画は Firefox ではかなり時間がかかる
+        // のだけれど １枚だけならまあ何とか？
+        g2.globalCompositeOperation = "lighten";
+        g2.drawImage(this.buffer3, 0, 0);
+
+        // Offet を反映して描画しなおす
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.translate( (w - s)/2, (h - s)/2 ); // 中央に表示
+        this.drawImageWithOffset(g, this.buffer2);
+
+        if(w > s) {
+          // 左側を描画
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.translate( (w - s)/2 - s, (h - s)/2 );
+          this.drawImageWithOffset(g, this.buffer2);
+          // 右側を描画
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.translate( (w - s)/2 + s, (h - s)/2 );
+          this.drawImageWithOffset(g, this.buffer2);
+          // 暗くする
+          g.fillStyle = "#00000080"
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.fillRect(0, 0, (w - s)/2, h);
+          g.fillRect((w - s)/2 + s, 0, (w - s)/2, h);
+        }
+
+        if(h > s) {
+          // 上側を描画
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.translate( (w - s)/2, (h - s)/2 - s);
+          this.drawImageWithOffset(g, this.buffer2);
+          // 下側を描画
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.translate( (w - s)/2, (h - s)/2 + s);
+          this.drawImageWithOffset(g, this.buffer2);
+          // 暗くする
+          g.fillStyle = "#00000080"
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.fillRect(0, 0, w, (h - s)/2);
+          g.fillRect(0, (h - s)/2 + s, w, (h - s)/2);
+        }
+      },
+
+      // 尾を引かせる背景処理
+      render2dBackground(g, w, h) {
         let t = this.state.tail;
         if(t > 50) {
-          this.tailCount = (this.tailCount || 0) + 50/t;
+          this.tailCount = (this.tailCount ?? 0) + 50 / t;
           t = 50;
         } else {
           this.tailCount = 1;
@@ -426,30 +560,25 @@
             // 尾を引かせるときは alpha を指定する
             style += ('0' + ((255 / (1.0 + 1.0 * t)) | 0).toString(16)).substr(-2);
           }
-          g2.fillStyle = style;
-          g2.globalCompositeOperation = "source-over"
-          g2.fillRect(0, 0, this.buffer2.width, this.buffer2.height);
+          g.setTransform(1, 0, 0, 1, 0, 0);
 
-          g2.fillStyle = "#010101";
-          g2.globalCompositeOperation = "difference"
-          g2.fillRect(0, 0, this.buffer2.width, this.buffer2.height);
+          g.fillStyle = style;
+          g.globalCompositeOperation = "source-over"
+          g.fillRect(0, 0, w, h);
+
+          // 微妙に消えないのを消すための隠し味
+          g.fillStyle = "#010101";
+          g.globalCompositeOperation = "difference"
+          g.fillRect(0, 0, w, h);
 
           this.tailCount -= 1;
         }
-
-        // WebGL を使わない描画
-        g2.globalCompositeOperation = "source-over"
-        this.render_2d(g2, world, colorFunc);
-        g2.setTransform(1, 0, 0, 1, 0, 0);
-
-        const g = canvas.getContext('2d');
-        this.drawImageWithOffset(g, this.buffer2);
       },
 
-      render_gl(gl, canvas, world, colorFunc) {
+      renderGL(gl, canvas, world, colorFunc) {
 
         if(!this.rendererGL) {
-          this.rendererGL = new this.ParticleRendereGL(gl);
+          this.rendererGL = new this.ParticleRendererGL(gl);
 
           // 32px x 32px circle
           this.rendererGL.loadTexture(`data:image/png;base64,
@@ -465,7 +594,7 @@
 
         let tail = this.state.tail;
         if(!this.frameBuffer1) {
-          this.frameBuffer1 = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
+          this.frameBuffer1  = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
           this.frameBuffer2A = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
           this.frameBuffer2B = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
           
@@ -526,40 +655,44 @@
           this.counter = 1;
         }
         if(this.frameBuffer1.width != this.state.size) {
-          this.frameBuffer1.resize(this.state.size, this.state.size)
+          this.frameBuffer1.resize( this.state.size, this.state.size)
           this.frameBuffer2A.resize(this.state.size, this.state.size)
           this.frameBuffer2B.resize(this.state.size, this.state.size)
           tail = 0;
           this.counter = 1;
         }
 
+        // frameBuffer1 へ描画
         this.rendererGL.render(
           0, this.state.size, this.state.size,
           world, colorFunc, this.calcParticleSize(),
           this.frameBuffer1
         );
 
-        let src = this.counter % 2 == 0 ? this.frameBuffer2A : this.frameBuffer2B;
+        // frameBuffer2A/B に交互に描画する
+        let src  = this.counter % 2 == 0 ? this.frameBuffer2A : this.frameBuffer2B;
         let dest = this.counter % 2 == 0 ? this.frameBuffer2B : this.frameBuffer2A;
 
+        // 前回の描画結果 src に frameBuffer1 の結果を書き加えたものを dest へ描画
         this.frameRendererTail.render(1, this.frameBuffer1.texture, (gl, program)=> {
           gl.disable(gl.BLEND);
           gl.disable(gl.DEPTH_TEST);
           gl.viewport(0,0, this.state.size, this.state.size);
-          program.u_tail.f(tail);
-          program.u_size.f(this.state.size, this.state.size);
-          program.u_time.i(this.count);
-          program.u_texture2.i(2);
+          program.u_tail.f = tail;
+          program.u_size.f = [this.state.size, this.state.size];
+          program.u_time.i = this.count;
+          program.u_texture2.i = 2;
           gl.activeTexture(gl.TEXTURE2);
           gl.bindTexture(gl.TEXTURE_2D, src.texture);
         }, dest);
 
+        // dest に Offset 処理をして canvas へ描画
         this.frameRendererOffset.render(3, dest.texture, (gl, program)=> {
           gl.disable(gl.BLEND);
           gl.disable(gl.DEPTH_TEST);
           gl.viewport(0,0,canvas.width,canvas.height);
-          program.u_size.f(canvas.width, canvas.height);
-          program.u_offset.f(this.state.offsetX, -this.state.offsetY);
+          program.u_size.f = [canvas.width, canvas.height];
+          program.u_offset.f = [this.state.offsetX, -this.state.offsetY];
         });
 
         this.counter += 1;

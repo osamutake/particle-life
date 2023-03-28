@@ -1,0 +1,408 @@
+p<!-----------------------------------------------------------------
+
+  ワールド生成パラメータを制御するためのコントロール
+  css は bulma を使用
+
+  props = {
+  }
+
+  this.state = {
+    pause: false,
+    recording: false,
+    interact_seed: 2**53 * Math.random(),
+    world_seed: 2**53 * Math.random(),
+    nspecies: 6,
+    nlattice: 30,
+    scale: 1,
+    tail: 0,
+    maxfps: 20,
+    intset: "",
+  };
+
+  EVENTS: どれも e.detail には state が入る
+    update
+    restart
+    pause
+    record
+
+----------------------------------------------------------------->
+
+<pl-controls>
+  <section>
+    <div class="columns">
+      <div class="column is-narrow field">
+        <label for="recommendation" class="label"><i18n>ワールド設定</i18n></label>
+        <div class="select" onclick={()=> flashControlCancel()}>
+          <select id="recommendation" value="" onchange={ recommendationChange }>
+            <option value="" >{i18n.t("URLで")}</option>
+            <option  each={ recommendation in recommendations } 
+                key={recommendation[1]} value={recommendation[1]}>{i18n.t(recommendation[0])}</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="interact_seed" class="label"><i18n>描画制御</i18n></label>
+        <div class="field has-addons">
+          <p class="control">
+            <button class="button" onclick={ ()=> dispatchEvent("restart", {randomize: false, fullScreen: false}) } 
+              id="replay" title={i18n.t("始めに戻ってリプレイ")}>
+              <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
+            </button>
+          </p>
+          <p class="control">
+            <button id="pause" class={ state.pause ? "button is-danger" : "button" }
+                    onclick={ ()=> { update({"pause": !state.pause }); dispatchEvent("pause", state); } } 
+                    title={ i18n.t("ポーズ／再開") }>
+              <span class="icon is-small"><ion-icon name={ state.pause ? "play" : "pause" }></ion-icon></span>
+            </button>
+          </p>
+          <p class="control">
+            <button id="recording" class={ state.recording ? "button is-danger" : "button" } 
+                    onclick={ ()=>{ update({"recording": !state.recording }); dispatchEvent("record", state); } } 
+                    title={ i18n.t("webm に録画") }>
+              <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
+            </button>
+          </p>
+          <p class="control">
+            <button id="palette" class={ state.showPalette ? "button is-dark" : "button" } 
+                    onclick={ ()=>{ update({"showPalette": !state.showPalette }) } } 
+                    title={ i18n.t("カラーパレット編集") }>
+              <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span>
+            </button>
+          </p>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="particleSize" class="label"><i18n>粒径</i18n></label>
+        <div class="control">
+          <input class="input" id="particleSize" inputmode="decimal"  value={state.particleSize} size="3" onchange={ editorChanged } min="0" step="0.5" max="127.5" /> 
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="screen" class="label" style="position:relative;"><i18n>画面</i18n> &nbsp; 
+          <span class="icon is-clickable" style="position:absolute;top:-4px;" onclick={ ()=> update({screen: "F"}) }><ion-icon name="expand"></ion-icon></span></label>
+        <div class="select">
+          <select id="screen" value={state.screen} onchange={ editorChanged }>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="F">Full</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label class="label"><i18n>使い方</i18n></label>
+        <div class="control">
+          <button class="button is-info" onclick={props.onHelp}>
+            <span class="icon is-small"><ion-icon name="help"></ion-icon></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style={`display: ${ $('#recommendation').value=='?' ? 'block' : 'none' }`}>
+    <div class="columns">
+      <div class="column is-narrow field">
+        <label for="nspecies" class="label"><i18n>粒子種数</i18n></label>
+        <div class="control">
+          <input class="input" id="nspecies" inputmode="decimal" value={state.nspecies} size="2" onchange={ editorChanged } min="1" max="200" step="1" />
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="nparticles" class="label"><i18n>√粒子数</i18n></label>
+        <div class="control">
+          <input class="input" id="nlattice" inputmode="decimal" value={state.nlattice} size="2" onchange={ editorChanged } min="5" max="300" step="10" />
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="scale" class="label"><i18n>スケール</i18n></label>
+        <div class="control">
+          <input class="input" id="scale" inputmode="decimal"  value={state.scale} size="2" onchange={ editorChanged } min="0.5" step="0.2" max="20" />
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="step" class="label"><i18n>計算ステップ</i18n></label>
+        <div class="control">
+          <input class="input" id="step" inputmode="decimal"  value={state.step} size="2" onchange={ editorChanged } min="0" max="2" step="0.1" /> 
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="tail" class="label"><i18n>尾の長さ</i18n></label>
+        <div class="control">
+          <input class="input" id="tail" inputmode="decimal"  value={state.tail} size="2" onchange={ editorChanged }  min="0" step={
+            state.tail < 15 ? 1 :
+            state.tail < 30 ? 2 : 10
+          } /> 
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="perturb" class="label"><i18n>揺動</i18n></label>
+        <div class="control">
+          <input id="perturb" type="checkbox" checked={state.perturb != 0} onchange={ editorChanged } /> 
+        </div>
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column is-narrow field">
+        <label for="intset" class="label"><i18n>相互作用セット</i18n></label>
+        <div class="select">
+          <select id="intset" value={state.intset} onchange={ editorChanged }>
+            <option value="">{i18n.t("デフォルト")}</option>
+            <option value="A">{i18n.t("多粒子種補正A")}</option>
+            <option value="B">{i18n.t("多粒子種補正B")}</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="interact_seed" class="label"><i18n>相互作用シード</i18n></label>
+        <div class="field has-addons">
+          <div class="control">
+            <input class="input" id="interact_seed" inputmode="decimal" 
+              value={ state.interact_seed } onchange={ editorChanged } size="12" min="1">
+          </div>
+          <div class="control">
+            <a class="button is-info" onclick={ regenerateInteractionSeed }>
+              <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="world_seed" class="label"><i18n>粒子配置シード</i18n></label>
+        <div class="field has-addons">
+          <div class="control">
+            <input class="input" id="world_seed" inputmode="decimal" value={ state.world_seed } onchange={ editorChanged } size="12" min="1">
+          </div>
+          <div class="control">
+            <a class="button is-info" onclick={ regenerateWorldSeed }>
+              <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <a class="button is-info is-small" id="show-editor" onclick={props.onShowEditor}>
+      <i18n>パラメータエディタを表示/非表示</i18n></a>
+    </div>
+  </section>
+
+  <style type="scss">
+    span.icon {
+      margin: 0px -2px !important;
+    }
+
+    .columns {
+      display: flex;
+      max-width: var(--100vw);
+      flex-wrap: wrap;
+      @media screen and (min-width: 420px) and (max-width: 640px) {
+        padding-left: 0.5em;
+      }
+    }
+
+    .is-narrow {
+      flex: none;
+      width: unset;
+    }
+
+    .column.is-narrow.field {
+      padding: 0.5rem;
+    }
+  </style>
+
+  <script>
+    export default {
+      async onBeforeMount(props, state) {
+        this.i18n = i18n;
+
+        props.intf.default_state = {
+          pause: false,
+          recording: false,
+          interact_seed: 2**53 * Math.random(),
+          world_seed: 2**53 * Math.random(),
+          nspecies: 6,
+          nlattice: 30,
+          scale: 3,
+          tail: 0,
+          step: 1,
+          intset: "",
+          perturb: 0.001,
+          screen: "S",
+          particleSize: 2.5,
+        }
+
+        Object.assign(state, props.intf.default_state);
+
+        this.recommendations.push(...props.intf.recommendations);
+
+        props.intf.update = (...args) => this.update(...args);
+        props.intf.getSearchString = (...args) => this.getSearchString(...args)
+      },
+
+      onMounted(props, state) {
+        this.flashControl(this.$('#recommendation'), '#ff3');
+
+        this.$$('input[inputmode="decimal"]').forEach((elem)=>
+          elem.autocomplete = "off"
+        )
+
+        i18n.addEventListener('update', this.onI18nUpdate)
+      },
+
+      onUnmounted(props, state) {
+        i18n.removeEventListener('update', this.onI18nUpdate)
+      },
+
+      onI18nUpdate() {
+        this.update()
+      },
+
+      flashControlCancel: ()=>0,
+
+      async flashControl(control, color) {
+        this.flashControlCancel();
+
+        const original = control.style.backgroundColor;
+        let cancelRequested = false;
+        this.flashControlCancel = ()=>{
+          control.style.backgroundColor = original;
+          cancelRequested = true; 
+        };
+        for(let i = 0; i < 5; i++) {
+          control.style.backgroundColor = color;
+          await util.sleep(400);
+          if(cancelRequested) break;
+
+          control.style.backgroundColor = original;
+          await util.sleep(400);
+          if(cancelRequested) break;
+        }
+      },
+
+      recommendations: [['自分で', '?']],
+
+      recommendationChange(e) {
+        if(e.target.value == "?") {
+          this.update();
+        } else {
+          this.dispatchEvent("restart", {randomize: true, fullScreen: false});
+        }
+        this.flashControl(document.getElementById('new-world'), '#880');
+      },
+
+      editorChanged(e) {
+        let {id, value} = e.target;
+        if(e.target.id == "perturb") {  // 規定値は 0.001
+          this.state.perturb = e.target.checked ? 0.001 : 0
+        } else
+        if(e.target.id == "scale") {    // scale を変えたら step も連動させる
+          Object.assign(this.state, {
+            scale: value,
+            step: Math.round(this.state.step * this.state.scale / value * 1000)/1000
+          });
+        } else {
+          this.state[id] = value;
+        }
+        this.state.restart = [
+          "nspecies", "nlattice", "scale", "intset", 
+          "step", "world_seed", "interact_seed"].includes(e.target.id);
+
+        this.update();
+      },
+
+      regenerateInteractionSeed() {
+        this.update({ interact_seed: 2**53 * Math.random() });
+        this.dispatchEvent("restart", {randomize: false, fullScreen: false});
+      },
+      
+      regenerateWorldSeed() {
+        this.update({ world_seed: 2**53 * Math.random() });
+        this.dispatchEvent("restart", {randomize: false, fullScreen: false});
+      },
+
+      onBeforeUpdate(props, state) {
+        // allows recalculation of context data before the update
+        const rule = {
+          pause: 'boolean',
+          recording: 'boolean',
+          interact_seed: ['required', 'integer', 'min:1'],
+          world_seed: ['required', 'integer', 'min:1'],
+          nspecies: ['required', 'integer', 'between:1,200'],
+          nlattice: ['required', 'integer', 'between:5,300'],
+          scale: ['required', 'numeric', 'between:0.5,20'],
+          tail: ['required', 'numeric', 'min:0'],
+          intset: ['regex:/^[A-Z]?$/'],
+          screen: ['required'],
+          particleSize: ['required', 'numeric', 'between:0,127.5'],
+        };
+
+        state.validation = new Validator(state, rule);
+        state.validation.passes();  // check!
+
+        for(let id of Object.keys(rule)) {
+          if(state.validation.errors.errors[id]) {
+            this.$('#'+id).classList.add('is-danger');
+            if(this.lastState && this.lastState[id])
+              state[id] = this.lastState[id]; // 直前の値に戻す
+          } else {
+            this.$('#'+id).classList.remove('is-danger');
+          }
+        }
+      },
+      
+      onUpdated(props, state) {
+        if(state.screen == "F") {
+          state.screen = this.lastState.screen;
+          this.$("#screen").value = state.screen;
+          this.dispatchEvent("update", {...state});
+          this.dispatchEvent("full-screen");
+        } else {
+          this.dispatchEvent("update", {...state});
+        }
+        delete state.restart  // 済んだら消しておく
+
+        // 直前の設定を取っておく
+        this.lastState = {...state};
+      },
+
+      getSearchString(currentSetting, randomizeSeeds = false) {
+        // ワールド設定を読み取る
+        let search = this.$('#recommendation').value;
+
+        // 自分で設定なら現在値
+        if(search == '?') search = currentSetting;
+
+        // URL 指定の場合
+        if(!search) search = location.search;
+
+        // URL で指定されてなければお勧め設定
+        if(!search) {
+          search = this.recommendations.find((rec)=> rec.length > 2)[1];
+          this.$('#recommendation').value = search;
+        }
+
+        // randomizeSeeds 指定あるいは値が 0 ならシード値を置き換える
+        let parts = search.split('_');
+        if(randomizeSeeds) {
+          parts[2] = parts[2].replace(/[0-9]+/, 2**56 * Math.random());
+          parts[3] = parts[3].replace(/[0-9]+/, 2**56 * Math.random());
+        } else {
+          if(0 == parts[2].replace(/[^0-9]+$/, '')) {
+            parts[2] = parts[2].replace(/[0-9]+/, 
+                    this.state.interact_seed || 2**56 * Math.random() );
+          }
+          if(0 == parts[3].replace(/[^0-9]+$/, '')) {
+            parts[3] = parts[3].replace(/[0-9]+/, 
+                    this.state.world_seed    || 2**56 * Math.random() );
+          }
+        }
+        search = parts.join('_');
+
+        return search;
+      },
+
+
+    }
+  </script>
+</pl-controls>

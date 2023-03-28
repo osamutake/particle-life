@@ -1,68 +1,83 @@
 <app>
-  <p><i18n>粒子に命が宿る世界をのんびり眺めるサイトです。</i18n><br class="weak" />
-     <i18n>飽きたら「次のワールドを生成」を押して下さい。</i18n></p>
+  <section>
+    <p><i18n>粒子に命が宿る世界をのんびり眺めるサイトです。</i18n><br class="weak" />
+      <i18n>飽きたら「次のワールドを生成」を押して下さい。</i18n></p>
 
-  <div id="fps" style="text-align:right;max-width:600px"></div>
-  <div class="columns is-desktop">
-    <div class="column is-narrow" style="line-height:1;position:relative;">
-      
-      <particles-display width="600" height="600" 
-          on-restart={onDisplayRequestRestart} intf={displayIntf}></particles-display><br>
-      
-      <color-scale-editor width="600" height="40" 
-          on-update={onColorScaleEditorUpdate} intf={colorScaleEditorIntf}></color-scale-editor>
-      
-      <div class="top-buttons">
-        <a class="button is-info is-small" id="new-world" onclick={onNewWorldClick}>
-            <i18n>次のワールドを生成</i18n></a>
-        <a class="button is-info is-small" id="copy-url" onclick={onCopyUrlClick}>
-            <i18n>このワールドをシェア</i18n>&nbsp;&nbsp;&nbsp;
-            <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>
-        <div class="block" id="copy-url-message">
-          <span class="tag is-success">
-            <i18n>このワールドへの URL をコピーしました</i18n>
-          </span>
+    <div id="fps"><!-- 更新頻度が高いので riot を使わず生で書き換える --></div>
+    <div class="columns is-desktop">
+      <div class="column is-narrow" style="line-height:1;position:relative;">
+        
+        <particles-display width="600" height="600" 
+            on-restart={()=> restart(true, true)} intf={displayIntf}></particles-display><br>
+        
+        <color-scale-editor width="600" height="40" 
+            on-update={onColorScaleEditorUpdate} intf={colorScaleEditorIntf}></color-scale-editor>
+        
+        <!-- メインスクリーン下のボタン列 -->
+        <div class="top-buttons">
+          <a class="button is-info is-small" id="new-world" onclick={()=> restart(true)}>
+              <i18n>次のワールドを生成</i18n>
+          </a>
+          <a class="button is-info is-small" id="copy-url" onclick={onCopyUrlClick}>
+              <i18n>このワールドをシェア</i18n>&nbsp;&nbsp;&nbsp;
+              <span class="icon"><ion-icon name="share-social"></ion-icon></span>
+          </a>
+          <div class="block" id="copy-url-message">
+            <span class="tag is-success">
+              <i18n>このワールドへの URL をコピーしました</i18n>
+            </span>
+          </div>
+          <a class="button is-info is-small" id="full-screen" onclick={onFullScreenClick}>
+              <i18n>全画面</i18n> &nbsp; 
+              <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
+          <div class="block" id="full-screen-message">
+            <span class="tag is-success">
+              <i18n>画面外のダブルタップで次のワールドを生成できます</i18n>
+            </span>
+          </div>
         </div>
-        <a class="button is-info is-small" id="full-screen" onclick={onFullScreenClick}>
-            <i18n>全画面</i18n> &nbsp; 
-            <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
-        <div class="block" id="full-screen-message">
-          <span class="tag is-success">
-            <i18n>画面外のダブルタップで次のワールドを生成できます</i18n>
-          </span>
-        </div>
+
+        <!-- 標準コントロール -->
+        <pl-controls 
+          intf={controlsIntf}
+          on-show-editor={()=> root.classList.toggle('world-editor-shown')} 
+          on-record={onRecordClick} 
+          on-restart={onRestartFromControls}
+          on-pause={onPauseClick}
+          on-update={(e)=> updateControlsSetting(e.detail)}
+          on-help={()=> helpPopupIntf.show()}
+          on-full-screen={()=> requestFullScreen()}
+        ></pl-controls>
       </div>
 
-      <plcontrols 
-        intf={controlsIntf}
-        on-show-editor={onShowEditorClick} 
-        on-record={onRecordClick} 
-        on-restart={onRestartFromControls}
-        on-pause={onPauseClick}
-        on-update={onControlsUpdate}
-        on-help={helpPopupIntf.show}
-      ></plcontrols>
+      <!-- ワールドエディタ -->
+      <div class="column is-narrow" id="world-editor">
+        <interaction-editor width="600" intf={intEditorIntf} 
+            on-max-fps-change={()=>{ if(renderer) renderer.maxFps = $('#max-fps').value}}>
+        </interaction-editor>
+      </div>
+
     </div>
 
-    <div class="column is-narrow" id="world-editor">
-      <interaction-editor width="600" 
-        intf={intEditorIntf}
-      ></interaction-editor>
+    <!-- 録画データを表示するエリア -->
+    <video-holder data-blob={state.videoBlob} data-name={state.videoName}></video-holder>
+
+    <!-- ヘルプ表示コントロール＆ヘルプ文字列 -->
+    <div class="content">
+        <help-popup intf={helpPopupIntf}>
+          <ul>
+            <li each={message in messages}><raw html={message}></raw></li>
+          </ul>
+        </help-popup>
     </div>
-
-  </div>
-
-  <video-holder intf={videoHolderIntf}></video-holder>
-
-  <div class="content">
-      <help-popup intf={helpPopupIntf} messages={helpContents}>
-        <ul>
-          <li each={message in messages}><raw html={message}></raw></li>
-        </ul>
-      </help-popup>
-  </div>
+  <section>
 
   <style type="scss">
+    #fps {
+      text-align:right;
+      max-width:600px;
+    }
+
     .top-buttons {
       position: relative;
       margin-bottom:20px;
@@ -74,18 +89,19 @@
         margin-right: 5px;
       }
     }
+
     @media screen and (max-width: 420px) {
       .top-buttons {
         margin-left: -0.75rem;
         margin-right: -0.75rem;
       }
     }
+
     #copy-url-message {
       display: block;
       position: absolute;
       top: -40px;
       left: 70px;
-      
     }
 
     #copy-url-message {
@@ -107,7 +123,7 @@
       display: block;
     }
 
-    :host.world-editor-shown plcontrols {
+    :host.world-editor-shown pl-controls {
       max-width: 600px;
       display: block;
     }
@@ -120,15 +136,13 @@
     import { ColorScale, colorScaleList } from "../color-scale.js"
     import { ParticleLife } from '../particle-life.js'
     import { XorShift128 } from '../xorshift128.js'
-    import helpContents from '../help-contents.js'
+    
     export default {
-      onBeforeMount() {
+      onBeforeMount(props, state) {
         // コンポーネントを構成する
 
         this.world = null;
         this.colorFunc = null;
-
-        this.helpContents = helpContents;
 
         this.displayIntf = {
           world: () => this.world,
@@ -141,8 +155,7 @@
         }
 
         this.helpPopupIntf = {
-          show: null,
-          helpDisplayTarget: "help-list"
+          show: null
         }
         
         this.colorScaleEditorIntf = {
@@ -165,48 +178,43 @@
         }
 
         this.controlsIntf = {
-          getWorldOptions: null,
-          updatePaletteSetting: null,
           update: null,
-          getWorldURL: null,
-          recommendations: this.props.recommendations,
-        }
-
-        this.videoHolderIntf = {
-          setBlob: null
+          recommendations: props.recommendations,
         }
       },
 
       onMounted() {
-        this.controlsIntf.update();
-        this.colorScaleEditorIntf.update();
-
         this.renderer = new CanvasRenderer(
-          this.displayIntf.canvas(), 
-          this.render, 
-          (blob)=> this.videoHolderIntf.setBlob(blob, 
-              '?' + this.controlsIntf.getWorldURL().split('?')[1]) // search 部分
+          this.displayIntf.canvas(),                  // canvas
+          this.render,                                // render func
+          (blob)=> this.update({
+                videoBlob: blob, 
+                videoName: this.getWorldURL().split('?')[1] // ファイル名
+              })
         );
+        this.renderer.maxFps = 61;
 
-        this.update();
+        this.setParameters(this.getSearchString(false));
         this.restart();
       },
 
-      displayFps(fps) {
-        const elemFps = document.getElementById('fps');
-        elemFps.innerText = `${String(fps).slice(0, 4)} fps`;
-      },
-
-      onControlsUpdate(e) {
-        const options = e.detail;
+      updateControlsSetting(options) {
         if(this.root.classList.contains('world-editor-shown')) {
-          delete options.perturb;
+          delete options.perturb; // エディタが world に直接書くので指定は無視する
         }
-        if(this.world) this.world.update(options);
-        this.colorScaleEditorIntf.update(options.paletteSetting);
-        this.displayIntf.update({tail: options.tail, screen: options.screen, particleSize: options.particleSize});
-        if(this.renderer) this.renderer.maxFps = options.maxfps;
-        document.querySelector('color-scale-editor').style.display = options.showPalette ? 'block' : 'none';
+        const {tail, screen, particleSize} = options;
+        this.displayIntf.update({tail, screen, particleSize});
+        this.$('color-scale-editor').style.display = 
+            options.showPalette ? 'block' : 'none';
+        if(options.screen == "F") this.requestFullScreen()
+
+        // 取っておく
+        this.state.controlsSetting = options;
+        if(options.restart) {
+          this.restart(false, false)
+        } else {
+          if(this.world) this.world.update(options);
+        }
       },
 
       onColorScaleEditorUpdate(e) {
@@ -214,8 +222,16 @@
         if(this.intEditorIntf.update) 
           this.intEditorIntf.update();
         this.displayIntf.render();
-        if(this.controlsIntf.updatePaletteSetting)
-          this.controlsIntf.updatePaletteSetting(e.detail);
+
+        // 取っておく
+        this.state.paletteSetting = e.detail;
+      },
+
+      displayFps(renderer) {
+        const elemFps = document.getElementById('fps');
+        const frame = renderer.counter <   1000 ? renderer.counter :
+                                                  Math.round(renderer.counter/100)/10 + "k";
+        elemFps.innerText = `frame# ${frame}, ${String(renderer.fps).slice(0, 4)} fps`;
       },
 
       render() {
@@ -223,13 +239,13 @@
         this.world.repelParticles(this.displayIntf.repelX, this.displayIntf.repelY);
         this.world.moveParticles();
         this.displayIntf.render();
-        this.displayFps(this.renderer.fps);
+        this.displayFps(this.renderer);
       },
 
       createWorld(randomize=false, fullScreen=false) {
-        options = this.controlsIntf.getWorldOptions(randomize, fullScreen);
+        const options = this.getWorldOptions(randomize, fullScreen);
         if(this.root.classList.contains('world-editor-shown')) {
-          delete options.perturb;
+          delete options.perturb; // エディタが world に直接書くので指定は無視する
         }
         if(!this.world) {
           this.world = new ParticleLife(options, new XorShift128(options.world_seed));
@@ -264,7 +280,7 @@
           world: this.world,
           colorFunc: (x) => this.colorFunc(x)
         });
-        this.renderer.start();
+        this.renderer.start(true);
       },
 
       onPauseClick(e) {
@@ -289,34 +305,193 @@
         this.restart(randomize, fullScreen);
       },
 
-      onNewWorldClick() {
-        this.renderer.stop();
-        this.restart(true);
-      },
-
-      onShowEditorClick() {
-        this.root.classList.toggle('world-editor-shown');
-      },
-
       onFullScreenClick() {
-        const style = document.getElementById("full-screen-message").style;
-        style.display = "block"
-        setTimeout(()=> {
-            style.display = "none";
-            this.controlsIntf.update({screen: 'F'}); 
-        }, 1000);
+        const style = this.$("#full-screen-message").style;
+
+        if(!this.state.fullScreenMessageShown) {
+          // 初回のみメッセージを表示する
+          this.state.fullScreenMessageShown = true;
+          style.display = "block"
+          setTimeout(()=> {
+              style.display = "none";
+              this.requestFullScreen(); 
+          }, 2000);
+        } else {
+          this.requestFullScreen(); 
+        }
       },
 
       onCopyUrlClick() {
-        navigator.clipboard.writeText(this.controlsIntf.getWorldURL());
-        const style = document.getElementById("copy-url-message").style;
-        setTimeout(()=> style.display = "block", 100);
-        setTimeout(()=> style.display = "none", 1600);
+        navigator.clipboard.writeText(this.getWorldURL());
+
+        // メッセージを表示
+        const style = this.$("#copy-url-message").style;
+        setTimeout(()=> style.display = 'block', 100);
+        setTimeout(()=> style.display = 'none', 1600);
       },
 
-      onDisplayRequestRestart() {
-        this.restart(true, true);
+      requestFullScreen() {
+        const keydownWhileFullScreen = (e) => {
+          if(e.key == 'n' || e.key == 'N') {
+            this.restart(true, true);
+          } else
+          if(e.key == ' ') {
+            this.$("#pause").click();
+          }
+        };
+
+        this.displayIntf.update({screen: "F"});
+
+        const canvas = document.getElementById("particles-display");
+        canvas.requestFullscreen();
+
+        canvas.addEventListener('fullscreenchange', (e) => {
+          if(!document.fullscreenElement) {
+            // フルスクリーンが終了した
+            document.removeEventListener('keydown', keydownWhileFullScreen);
+            this.displayIntf.update({screen: this.state.controlsSetting.screen});
+          }
+        });
+
+        document.addEventListener('keydown', keydownWhileFullScreen);
       },
+
+      // 数値を 0-9, A-Z, a-z のアルファベットに直す
+      num2char(n) {
+        const offset = n < 10          ? 0x30           :     // '0'
+                       n < 10 + 26     ? 0x41 - 10      :     // 'A'
+                       n < 10 + 26 * 2 ? 0x61 - 10 - 26 : -1; // 'a'
+
+        if(offset < 0) return "?";
+        
+        return String.fromCharCode(offset + n);
+      },
+      
+      // 0-9, A-Z, a-z のアルファベットを数値に直す
+      char2num(c) {
+        if(c == '?') return NaN;
+        c = c.charAt(0);
+        let n = c.charCodeAt(0);
+        return ('a' <= c && c <= 'z') ? n - 0x61 + 10 + 26 :
+               ('A' <= c && c <= 'Z') ? n - 0x41 + 10      :
+               ('0' <= c && c <= '9') ? n - 0x30           : NaN;
+      },
+
+      encodeParameters() {
+        const options = this.state.controlsSetting || this.controlsIntf.default_state;
+        let search = '?'; //  + (options.screen != 'S' ? options.screen : ''); 保存しないことにした
+        search += options.nspecies + "_" + options.nlattice;
+        search += "_" + options.interact_seed + options.intset + "_" + options.world_seed;
+        search += options.perturb  ? "" : "n";
+        search += "_" + options.tail;
+        search += "_" + options.scale;
+        search += "_" + options.step;
+        const paletteSetting = this.state.paletteSetting;
+        search += "_" + this.num2char(paletteSetting.iscale);
+        search += ("0" + Math.round(paletteSetting.offset*255).toString(16)).slice(-2);
+        search += ("0" + Math.round(paletteSetting.scale * 16 - 16).toString(16)).slice(-2);
+        search += Math.round(options.particleSize * 2);
+        return search;
+      },
+
+      getSearchString(randomizeSeeds = false) {
+        return this.controlsIntf.getSearchString(
+                  this.encodeParameters(), randomizeSeeds)
+      },
+
+      setParameters(search, fullScreen = false) {
+        let result = this.parseParameters(search);
+        if(fullScreen) result.screen = "F";
+        this.controlsIntf.update(result)  // 巡り巡って screen も変更される
+        this.colorScaleEditorIntf.update(result.paletteSetting);
+      },
+
+      parseParameters(search) {
+        if(!search)   // 何も指定されないときのデフォルト
+          search = this.getSearchString(true);
+
+        let result = Object.assign({}, this.controlsIntf.default_state);
+
+        // 先頭の ? を外して _ で分ける
+        let displaySetting;
+        let options = search.substring(1).split('_');
+        if(options.length == 4) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed] = options;
+        } else
+        if(options.length == 5) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail] = options;
+        } else
+        if(options.length == 6) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail, result.scale] = options;
+        } else
+        if(options.length == 7) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail, result.scale, result.step] = options;
+        } else
+        if(options.length == 8) {
+          [result.nspecies, result.nlattice, result.interact_seed, 
+           result.world_seed, result.tail, result.scale, result.step, displaySetting] = options;
+        } else {
+          return {};
+        }
+        
+        // 揺動
+        let match = /^(.*)n$/.exec(result.world_seed);
+        if(match) {
+          result.world_seed = match[1];
+          result.perturb = 0;
+        }
+
+        // スクリーンサイズ
+        match = /^(XS|S|M|L|F)(.+)/.exec(result.nspecies);
+        if(match) {
+          result.screen = match[1];
+          result.nspecies = match[2];
+        }
+        result.screen = "S";  // 無視することにした
+        
+        // 大文字のアルファベットは相互作用セットの指定
+        if(/[A-Z]/.test(result.interact_seed.slice(-1))) {
+          result.intset = result.interact_seed.slice(-1);
+          result.interact_seed = result.interact_seed.slice(0,-1);
+        }
+        
+        if(displaySetting) {
+          this.state.paletteSetting ||= {}
+          this.state.paletteSetting.iscale = this.char2num(displaySetting.slice(0, 1), 16);
+          if(displaySetting.slice(1, 3)=='xx')  { // offset
+            displaySetting = displaySetting.slice(0, 1) +
+                             ("0"+Math.round(Math.random()*255).toString(16)).slice(-2) +
+                             displaySetting.slice(3);
+          }
+          this.state.paletteSetting.offset = parseInt(displaySetting.slice(1, 3), 16) / 255;
+          if(displaySetting.slice(3, 5)=='xx')  { // scale
+            let rand = Math.random() ** 4;  // ゼロに近い方をより多く
+            if(rand < 0.2) rand = 0; // 全範囲を使う確率をある程度取る
+            displaySetting = displaySetting.slice(0, 3) +
+                             ("0"+Math.round(rand*32).toString(16)).slice(-2) +
+                             displaySetting.slice(5);
+          }
+          this.state.paletteSetting.scale  = 1 + parseInt(displaySetting.slice(3, 5), 16) / 16;
+          result.particleSize  = displaySetting.slice(5) / 2;
+        }
+
+        return result;
+      },
+
+      getWorldOptions(randomize, fullScreen) {
+        if(randomize)
+          this.setParameters(this.getSearchString(randomize), fullScreen);
+        return this.state.controlsSetting;
+      },
+
+      getWorldURL() {
+        return location.href.replace(/[^\/]*$/, this.encodeParameters())
+      },
+
     }
   </script>
 

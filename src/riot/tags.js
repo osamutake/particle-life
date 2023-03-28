@@ -8,7 +8,7 @@
 import t0 from './app.riot'
 import t1 from './raw.riot'
 import t2 from './particles-display.riot'
-import t3 from './plcontrols.riot'
+import t3 from './pl-controls.riot'
 import t4 from './color-scale-editor.riot'
 import t5 from './interaction-editor.riot'
 import t6 from './help-popup.riot'
@@ -72,6 +72,28 @@ function installPlugins(riot) {
         mouseDown = false;
         if(handlers.up) handlers.up(e, mouseX, mouseY);
       })
+    }
+
+    return component;
+  })
+
+  // イベントディスパッチの省力化
+  riot.install( (component) => {
+    component.camelCase = (str) => {
+      return str.split('-').map((w,i) => 
+        (i === 0) ? w.toLowerCase() 
+                  : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+      ).join('')
+    }
+
+    component.kebabCase = (str) => {
+      return str.split(/(?=[A-Z])/).join('-').toLowerCase()
+    }
+
+    component.dispatchEvent = (name, data) => {
+      const handler = component.props[component.camelCase("on-" + name)];
+      if(!handler) return;
+      handler(new CustomEvent("name", {detail: data}));
     }
 
     return component;

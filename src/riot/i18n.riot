@@ -9,6 +9,18 @@
   </style>
 
   <script>
+    /*
+    * <i18n>hello</i18n>
+    *
+    * i18n.setDictionary({"ja": { "hello": "こんにちは" }})
+    *
+    * あるいは、
+    *
+    * <i18n id="greeting">hello</i18n>
+    *
+    * i18n.setDictionary({"ja": { "id_greeting": "こんにちは" }})
+    *
+    */
     export default {
       onMounted() {
         i18n.addEventListener("update", this.onI18nUpdate)

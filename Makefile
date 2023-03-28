@@ -2,7 +2,7 @@ CC := ./emsdk/upstream/emscripten/emcc
 RIOT := ./node_modules/.bin/riot
 ESBUILD := ./node_modules/.bin/esbuild
 
-debug-build: dist/particle-life.wasm dist/particle-life.js dist/index.html dist/recommendations.json
+debug-build: dist/particle-life.wasm dist/particle-life.js dist/index.html
 
 .PHONY: test release-build clean
 

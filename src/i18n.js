@@ -4,6 +4,7 @@ class I18n {
   constructor(){
     implementEventTarget(this)
     this.setLocale()
+    this.missingMessageShown = {}
   }
 
   translate(src) {
@@ -26,7 +27,24 @@ class I18n {
       if(this.dictionary[loc] && this.dictionary[loc][key]) 
         return this.dictionary[loc][key]
     }
+    this.#showTranslationMissingMessageFor(key, src)
     return src
+  }
+
+  // 翻訳が見つからないものがあれば console.log に表示する
+  #showTranslationMissingMessageFor(key, src) {
+    if(this.missingMessageShown[key]) return;
+    if(Object.keys(this.missingMessageShown).length == 0) {
+      console.log(`i18n: translation(s) are missing for locale "${this.locales.join(', ')}":`);
+    }
+    this.missingMessageShown[key] = true;
+    if(key != src) {
+      src.split(/\n/).forEach( line => 
+        console.log(`    // ${line}`)
+      );
+    }
+    console.log(`    '${key}':`)
+    console.log("    '',")
   }
 
   // i18n.tag`brabra ${a} booboo ${b}.`
@@ -58,6 +76,7 @@ class I18n {
     this.originalLocale = originalLocale;
     this.dictionary = dict;
     this.dispatchEvent("update", {});
+    this.missingMessageShown = {}
   }
 
   setLocale(loc = this.browserLocales()) {
@@ -67,6 +86,7 @@ class I18n {
       this.locales = [loc];
     }
     this.dispatchEvent("update", {});
+    this.missingMessageShown = {}
   }
 }
 

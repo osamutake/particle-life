@@ -1,23 +1,19 @@
 <video-holder>
-  <div class="video-holder" if={state.blob}>
+  <div class="video-holder" if={props.dataBlob}>
     <video></video>
     <p><a>download the video</a></p>
   </div>
 
   <script>
     export default {
-      onBeforeMount(props) {
-        props.intf.setBlob = (blob, search) => this.update({blob: blob, search: search})
-      },
-
       onUpdated(props, state) {
-        if(!this.state.blob) return;
+        if(!this.props.dataBlob) return;
         const vid = this.$('video');
-        vid.src = URL.createObjectURL(this.state.blob);
+        vid.src = URL.createObjectURL(this.props.dataBlob);
         vid.controls = true;
 
         const a = this.$('a');
-        a.download = this.state.search.substr(1) + '.webm';
+        a.download = this.props.dataName.substr(1) + '.webm';
         a.href = vid.src;
 
         setTimeout(() => {
