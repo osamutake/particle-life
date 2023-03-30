@@ -52,6 +52,7 @@
     @media screen and (min-width: 1000px) {
       canvas {
         min-width: 600px;
+        min-height: 600px;
       }
     }
   </style>
@@ -63,7 +64,8 @@
           offsetX: 0,
           offsetY: 0,
           tail: 0,
-          particleSize: 3
+          particleSize: 3,
+          scale: 1
         })
 
         props.intf.update = (...args) =>
@@ -79,6 +81,12 @@
         this.registerPointerHandlers()
       },
 
+      get effectiveScale() {
+        let scale = this.state.scale;
+        if(0.8 < scale && scale < 1) scale = 1;
+        return scale;
+      },
+
       registerPointerHandlers() {
         const canvas = this.$("#particles-display");
 
@@ -87,14 +95,17 @@
           const size = Math.min(canvas.clientWidth, canvas.clientHeight)
           const ox = (canvas.clientWidth -  size) / 2
           const oy = (canvas.clientHeight - size) / 2
-          const x = (mouseX - ox) / size + this.state.offsetX
-          const y = (mouseY - oy) / size + this.state.offsetY
+          const scale = this.effectiveScale;
+          const x = ((mouseX - ox) / size - 0.5) / scale + 0.5
+          const y = ((mouseY - oy) / size - 0.5) / scale + 0.5
           return [x, y]
         };
 
         // [-0.5, 0.5) に巻き取る
         const mouse2xy = (mouseX, mouseY) => {
-          const [x, y] = mouse2xySub(mouseX, mouseY)
+          let [x, y] = mouse2xySub(mouseX, mouseY)
+          x += this.state.offsetX
+          y += this.state.offsetY
           return [x - Math.round(x), y - Math.round(y)]
         };
 
@@ -106,8 +117,25 @@
         
         let canvasTapCount = 0;
         let mouseDoubleDown = false;
+        let pinchL, pinchScale;
         this.defineDragBehavior( canvas, {
-          down: (e, x, y) => {
+          down: (e, x, y, points) => {
+            if(e.buttons != 1) return;  // 左ボタン以外が押されていれば無視
+            const keys = Object.keys(points).filter(k=> points[k].buttons == 1);
+            if(keys.length != 1) {
+              if(keys.length == 2) {
+                // ピンチ開始
+                const [e0, e1] = keys.map(k=> points[k]);
+                pinchL = Math.hypot(e1.offsetX - e0.offsetX,  // 距離
+                                    e1.offsetY - e0.offsetY);
+                pinchScale = this.state.scale; // 初期スケール
+                e.preventDefault();
+                return;
+              } else {
+                return; // マルチタッチは無視
+              }
+            }
+
             e.preventDefault();
             if( canvasTapCount == 0 ) { // シングルタップ
               canvasTapCount++;
@@ -122,23 +150,47 @@
               [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(x, y)
             }
           },
-          move: (e, mouseDown, newX, newY, oldX, oldY) => {
-            if(mouseDown) {
+          move: (e, mouseDown, newX, newY, oldX, oldY, points) => {
+            if(mouseDown) {               // 左ボタン以外が押されていれば無視
+              if(e.buttons != 1) return;  // 左ボタンが押されてなくても無視
+              const keys = Object.keys(points).filter(k=> points[k].buttons == 1);
+              if(keys.length != 1) {
+                if(keys.length == 2) {
+                  // ピンチ
+                  const [e0, e1] = keys.map(k=> points[k]);
+                  const l = Math.hypot(e1.offsetX - e0.offsetX,  // 距離
+                                       e1.offsetY - e0.offsetY);
+                  this.state.scale = pinchScale * l / pinchL;
+                  this.state.scale = Math.min(4, Math.max(0.5, this.state.scale));
+                  e.preventDefault();
+                  this.render();
+                  return;
+                } else {
+                  return; // マルチタッチは無視
+                }
+              }
+
               e.preventDefault();
-              if(!mouseDoubleDown) {    // スクロールする
-                const [dx, dy] = [newX - oldX, newY - oldY];
+              if(!mouseDoubleDown) {    
                 const size = Math.min(canvas.clientWidth, canvas.clientHeight);
-                this.state.offsetX -= dx / size; 
-                this.state.offsetX -= Math.round(this.state.offsetX);
-                this.state.offsetY -= dy / size; 
-                this.state.offsetY -= Math.round(this.state.offsetY);
+                const [dx, dy] = [newX - oldX, newY - oldY];
+                if(e.ctrlKey) {
+                  this.state.scale *= 1 - 2 * dy / size;
+                  this.state.scale = Math.min(4, Math.max(0.5, this.state.scale));
+                } else {
+                  // スクロールする
+                  this.state.offsetX -= dx / size / this.state.scale;
+                  this.state.offsetX -= Math.round(this.state.offsetX);
+                  this.state.offsetY -= dy / size / this.state.scale; 
+                  this.state.offsetY -= Math.round(this.state.offsetY);
+                }
                 this.render();
               } else {                  // 斥力
                 [this.props.intf.repelX, this.props.intf.repelY] = mouse2xy(newX, newY)
               }
             }
           },
-          up: (e, x, y) => {
+          up: (e, x, y, points) => {
             mouseDoubleDown = false;
             [this.props.intf.repelX, this.props.intf.repelY] = [NaN, NaN]
           }
@@ -505,41 +557,28 @@
         g2.globalCompositeOperation = "lighten";
         g2.drawImage(this.buffer3, 0, 0);
 
-        // Offet を反映して描画しなおす
+        // Offet と scale を反映して描画しなおす
         g.setTransform(1, 0, 0, 1, 0, 0);
-        g.translate( (w - s)/2, (h - s)/2 ); // 中央に表示
+        g.translate( w/2, h/2 );
+        g.scale(this.effectiveScale, this.effectiveScale);
+        g.translate( - s/2, - s/2 );  // 中央を原点にしてスケール
         this.drawImageWithOffset(g, this.buffer2);
 
-        if(w > s) {
-          // 左側を描画
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.translate( (w - s)/2 - s, (h - s)/2 );
-          this.drawImageWithOffset(g, this.buffer2);
-          // 右側を描画
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.translate( (w - s)/2 + s, (h - s)/2 );
-          this.drawImageWithOffset(g, this.buffer2);
-          // 暗くする
-          g.fillStyle = "#00000080"
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.fillRect(0, 0, (w - s)/2, h);
-          g.fillRect((w - s)/2 + s, 0, (w - s)/2, h);
-        }
-
-        if(h > s) {
-          // 上側を描画
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.translate( (w - s)/2, (h - s)/2 - s);
-          this.drawImageWithOffset(g, this.buffer2);
-          // 下側を描画
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.translate( (w - s)/2, (h - s)/2 + s);
-          this.drawImageWithOffset(g, this.buffer2);
-          // 暗くする
-          g.fillStyle = "#00000080"
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          g.fillRect(0, 0, w, (h - s)/2);
-          g.fillRect(0, (h - s)/2 + s, w, (h - s)/2);
+        let ss = s * this.effectiveScale;
+        g.fillStyle = "#00000080"
+        for(let i = -Math.ceil((w-ss)/ss/2); i <= Math.ceil((w-ss)/ss/2); i++) {
+          for(let j = -Math.ceil((h-ss)/ss/2); j <= Math.ceil((h-ss)/ss/2); j++) {
+            if(i==0 && j==0) continue;
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.translate( w/2, h/2 );
+            g.scale(this.effectiveScale, this.effectiveScale);
+            g.translate( - s/2 + i * s, - s/2 + j * s );  // 中央を原点にしてスケール
+            this.drawImageWithOffset(g, this.buffer2);
+            
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.fillRect((w-ss)/2 + i * ss, (h-ss)/2 + j * ss, ss, ss);
+            
+          }
         }
       },
 
@@ -633,39 +672,51 @@
             precision mediump float;
             uniform sampler2D u_texture;
             uniform vec2 u_size;
+            uniform float u_scale;
             uniform vec2 u_offset;
             void main(void){
               // ここで uv から gl_FragColor を求める
-              float size = min(u_size.x, u_size.y);
-              vec2 of = (u_size - size) / 2.0;
-              vec2 uv = (gl_FragCoord.xy - of) / size + u_offset;
-              uv.x -= floor(uv.x);
-              uv.y -= floor(uv.y);
+              float size = min(u_size.x, u_size.y);       // 正方形の一辺
+              vec2 of = (u_size - size) / 2.0;            // 左上の座標
+              vec2 uv = (gl_FragCoord.xy - of) / size;    // 正規化
+              uv = (uv - 0.5) / u_scale + 0.5 + u_offset; // 中央からスケール＋オフセット
+              uv.x -= floor(uv.x);                        // 周期境界
+              uv.y -= floor(uv.y);                        // 周期境界
               gl_FragColor = texture2D(u_texture, uv);
-              vec2 test = gl_FragCoord.xy - of;
-              if(test.x < 0.0 || test.y < 0.0) gl_FragColor.rgb /= 2.0;
-              test = gl_FragCoord.xy -size - of;
-              if(test.x > 0.0 || test.y > 0.0) gl_FragColor.rgb /= 2.0;
+
+              // 範囲チェック
+              vec2 test = ((gl_FragCoord.xy - of) / size - 0.5) / u_scale + 0.5;
+              if( test.x < 0.0 || test.y < 0.0 || test.x > 1.0 || test.y > 1.0 ) 
+                gl_FragColor.rgb /= 2.0;  // 範囲外なら暗くする
             }
           `;
           this.frameRendererOffset = new util.glTextureRenderer(gl, fsrcOffset, 
-            ["u_size", "u_offset"]);
+            ["u_size", "u_scale", "u_offset"]);
           
           tail = 0;
           this.counter = 1;
         }
-        if(this.frameBuffer1.width != this.state.size) {
-          this.frameBuffer1.resize( this.state.size, this.state.size)
-          this.frameBuffer2A.resize(this.state.size, this.state.size)
-          this.frameBuffer2B.resize(this.state.size, this.state.size)
+
+        // 1倍に吸い付くようにする
+        let scale = this.effectiveScale;
+
+        // 拡大できるよう常に2倍で描画する
+        // ２倍以上の拡大表示では少しぼやけるが気にしない
+        let ssize = 2 * this.state.size;
+        let psize = 2 * this.calcParticleSize(); 
+
+        if(this.frameBuffer1.width != ssize) {
+          this.frameBuffer1.resize( ssize, ssize)
+          this.frameBuffer2A.resize(ssize, ssize)
+          this.frameBuffer2B.resize(ssize, ssize)
           tail = 0;
           this.counter = 1;
         }
 
         // frameBuffer1 へ描画
         this.rendererGL.render(
-          0, this.state.size, this.state.size,
-          world, colorFunc, this.calcParticleSize(),
+          0, ssize, ssize,
+          world, colorFunc, psize,
           this.frameBuffer1
         );
 
@@ -677,9 +728,9 @@
         this.frameRendererTail.render(1, this.frameBuffer1.texture, (gl, program)=> {
           gl.disable(gl.BLEND);
           gl.disable(gl.DEPTH_TEST);
-          gl.viewport(0,0, this.state.size, this.state.size);
+          gl.viewport(0,0, ssize, ssize);
           program.u_tail.f = tail;
-          program.u_size.f = [this.state.size, this.state.size];
+          program.u_size.f = [ssize, ssize];
           program.u_time.i = this.count;
           program.u_texture2.i = 2;
           gl.activeTexture(gl.TEXTURE2);
@@ -693,6 +744,7 @@
           gl.viewport(0,0,canvas.width,canvas.height);
           program.u_size.f = [canvas.width, canvas.height];
           program.u_offset.f = [this.state.offsetX, -this.state.offsetY];
+          program.u_scale.f = scale;
         });
 
         this.counter += 1;

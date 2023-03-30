@@ -25,13 +25,6 @@
 
   <style type="scss">
     :host {
-      .background {
-        display: none;
-      }
-      #help-popup {
-        display: none;
-      }
-
       &.shown {
         .background {
           display: block;
@@ -41,69 +34,76 @@
           display: block;
         }
       }
-      .buttons {
-        display: flex;
-        justify-content: flex-end;
-      }
-        
-      .progress {
-        margin-top: 5px;
-      }
-      .background {
-        position: fixed;
-        background-color: #00000050;
-        z-index: 10;
-        top: 0px;
-        left: 0px;
-        width: 100vw;
-        height: 100vh;
-      }
-      #help-popup {
-        z-index: 15;
-        position: absolute;
-        left: 5vw;
-        width: 550px;
-        max-width: calc(var(--100vw) - 10vw);
-        top: 160px;
-      }
-      #help-text {
-        line-height: 1.5;
-        min-height: 8em;
-      }
-      #next-button {
-        margin: 5px 0px;
-      }
-
-      .arrow{
-        position: absolute;
-        display: block;
-        text-decoration: none;
-        font-size: 24px;
-        box-sizing: border-box;
-        
-        color: white;
-        padding: 5px;
-        border-radius: 3px;
-        background-color: #9c0;
-        font-weight: bold;
-        z-index: 10;
-        margin-top: -10px;
-      }
-      .arrow::after {
-        display: block;
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        margin: 0 10px;
-        border-bottom: 15px solid #9c0;
-        border-right: 15px solid #9c0;
-        transform: rotate(45deg);
-        top: 35px;
-        left: 10px;
-        content: "";
-      }
     }
 
+    .background {
+      display: none;
+    }
+    #help-popup {
+      display: none;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: flex-end;
+    }
+      
+    .progress {
+      margin-top: 5px;
+    }
+    .background {
+      position: fixed;
+      background-color: #00000050;
+      z-index: 10;
+      top: 0px;
+      left: 0px;
+      width: 100vw;
+      height: 100vh;
+    }
+    #help-popup {
+      z-index: 15;
+      position: absolute;
+      left: 5vw;
+      width: 550px;
+      max-width: calc(var(--100vw) - 10vw);
+      top: 160px;
+    }
+    #help-text {
+      line-height: 1.5;
+      min-height: 8em;
+    }
+    #next-button {
+      margin: 5px 0px;
+    }
+
+    .arrow{
+      position: absolute;
+      display: block;
+      text-decoration: none;
+      font-size: 24px;
+      box-sizing: border-box;
+      
+      color: white;
+      padding: 5px;
+      border-radius: 3px;
+      background-color: #9c0;
+      font-weight: bold;
+      z-index: 10;
+      margin-top: -10px;
+    }
+    .arrow::after {
+      display: block;
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      margin: 0 10px;
+      border-bottom: 15px solid #9c0;
+      border-right: 15px solid #9c0;
+      transform: rotate(45deg);
+      top: 35px;
+      left: 10px;
+      content: "";
+    }
   </style>
 
   <script>
@@ -129,7 +129,7 @@
 
       onBeforeUpdate(props, state) {
         props.intf.show = ()=> this.show();
-        if(state.messages != helpContents) {
+        if(state.messages !== helpContents) {
           state.messages = helpContents;
           state.n = helpContents.length;
           state.i = 0;
@@ -161,6 +161,7 @@
       close() {
         document.removeEventListener('keydown', this.keydown);
         this.root.classList.remove("shown");
+        this.state.i = 0;
       },
       
       keydown(e) {
@@ -187,15 +188,15 @@
           return;
         }
         
-        // 表示しておかないと offsetTop を取得できない
-        // https://stackoverflow.com/questions/42356461/offsettop-property-on-element-with-display-none-is-always-0
         let target = document.getElementById(targetId);
         if(target) {
           let targetRect = target.getBoundingClientRect();
           let targetTop = targetRect.top - 50;
           let targetLeft = targetRect.left + targetRect.width / 2 - 30;
-          let arrowRect = arrow.getBoundingClientRect();
+
+          // 表示しておかないと offsetTop を取得できない
           arrow.style.display = "block";
+          let arrowRect = arrow.getBoundingClientRect();
           arrow.style.top  = (targetTop  + arrow.offsetTop  - arrowRect.top ) + "px";
           arrow.style.left = (targetLeft + arrow.offsetLeft - arrowRect.left) + "px";
           this.blinkElement(arrow);

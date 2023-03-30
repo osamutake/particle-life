@@ -42,35 +42,41 @@ function installPlugins(riot) {
   riot.install( (component) => {
     component.defineDragBehavior = (ctrl, handlers) => {
       let mouseDown = false
-      let mouseX, mouseY
+      let mouseX, mouseY, points = {};
 
       ctrl.addEventListener("pointerdown", e => {
-        if(!isNaN(e.pointerId))
+        if(!isNaN(e.pointerId)) {
           ctrl.setPointerCapture(e.pointerId);
+          points[e.pointerId] = new e.constructor(e.type, e);
+        }
 
-        let crect = ctrl.getBoundingClientRect();
-        [mouseX, mouseY] = [(e.clientX - crect.left) | 0, 
-                            (e.clientY - crect.top ) | 0]; // | 0 で整数に直してる
+        [mouseX, mouseY] = [e.offsetX | 0, e.offsetY | 0]; // | 0 で整数に直してる
         mouseDown = true;
 
-        if(handlers.down) handlers.down(e, mouseX, mouseY);
+        if(handlers.down) handlers.down(e, mouseX, mouseY, points);
       })
       
       ctrl.addEventListener("pointermove", e => {
-        let crect = ctrl.getBoundingClientRect();
-        [newX, newY]     = [(e.clientX - crect.left) | 0, 
-                            (e.clientY - crect.top ) | 0]; // | 0 で整数に直してる
-        if(handlers.move) handlers.move(e, mouseDown, newX, newY, mouseX, mouseY);
+        if(!isNaN(e.pointerId))
+          points[e.pointerId] = new e.constructor(e.type, e);
+        const [newX, newY] = [e.offsetX | 0, e.offsetY | 0]; // | 0 で整数に直してる
+        if(handlers.move) handlers.move(e, mouseDown, newX, newY, mouseX, mouseY, points);
         [mouseX, mouseY] = [newX, newY]
       })
       
       ctrl.addEventListener("pointerup", e => {
         e.preventDefault();
-        if(!isNaN(e.pointerId))
+        if(!isNaN(e.pointerId)) {
           ctrl.releasePointerCapture(e.pointerId);
+          delete points[e.pointerId];
+        }
         
         mouseDown = false;
-        if(handlers.up) handlers.up(e, mouseX, mouseY);
+        if(handlers.up) handlers.up(e, mouseX, mouseY, points);
+      })
+
+      ctrl.addEventListener("touchend", e => {
+        if(e.touches.length == 0) points = {};  // すべて離された
       })
     }
 

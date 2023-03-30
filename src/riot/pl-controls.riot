@@ -352,6 +352,21 @@ p<!-----------------------------------------------------------------
       },
       
       onUpdated(props, state) {
+        let differentKeys = [];
+        Object.keys(this.state).forEach(k=>{
+          if(!this.lastState || (this.state[k] != this.lastState[k]))
+            differentKeys.push(k);
+        });
+        differentKeys = differentKeys.filter(k => k != "validation");
+
+        if(differentKeys.length == 1 &&
+             ['pause', 'recording'].includes(differentKeys[0])) {
+          // イベント送出の必要はない
+          // 直前の設定を取っておく
+          this.lastState = {...state};
+          return;
+        }
+
         if(state.screen == "F") {
           state.screen = this.lastState.screen;
           this.$("#screen").value = state.screen;

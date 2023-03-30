@@ -166,6 +166,9 @@ export default {
     '#_arg1_ が #_arg2_ から受ける力 (近 _arg3_, 遠 _arg4_)':
     'Force from #_arg2_ to #_arg1_ (near _arg3_, far _arg4_)',
 
+    '録画fps':
+    'Recording fps',
+
     // help-popup.riot
 
     '閉じる':
@@ -187,16 +190,24 @@ export default {
     'where particles come to life.<br><br>When you get bored, you can ' +
     'move to a different world by pressing "Next World".',
 
+    'id_help-text1_help':
+    `Besides the cover story, it simply simulates the motion of particles 
+     after randomly determining the initial arrangement and the interaction 
+     coefficients between the colors.<br><br>
+     Enjoy watching how complex behavior and beutiful patterns can emerge 
+     from the simple rule and coincidences!`,
+
     'id_recommendation_help':
     'Select some recommended config under "World Config.", '+
     'then try pressing "Next World" a few times.',
     
     'id_full-screen_help':
     'You can enjoy full screen view by pressing "Full Screen <span class="icon"><ion-icon name="expand"></ion-icon></span>".<br><br>'+
-    'While in full-screen view, you can move to the next world by double-click/tap on peripheral area or pressing "N" key.',
+    'Within the full-screen view, you can move to the next world by double-clicking/taping on peripheral area or pressing "N" key.',
 
     'id_particles-display_help':
-    'You can stick your finger into the world by double click/tap on the main screen.',
+    `You can stick your finger into the world by double click/tap on the main screen.<br><br>
+     You can zoom in/out by mouse drag with Ctrl-key or pinch in/out.`,
 
     'id_copy-url_help':
     'You can copy URL for the current world by pressing "Share this world <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>".',

@@ -80,6 +80,13 @@
                     size="3" onchange={ props.onMaxFpsChange } min="0" max="1000" step="10"/> 
               </div>
             </div>
+            <div class="column is-narrow field">
+              <label for="recording-fps" class="label"><i18n>録画fps</i18n></label>
+              <div class="control">
+                <input class="input" id="recording-fps" inputmode="decimal" value="0" 
+                    size="3" onchange={ props.onRecordingFpsChange } min="0" max="1000" step="10"/> 
+              </div>
+            </div>
           </div>
         </div>
         <ul>

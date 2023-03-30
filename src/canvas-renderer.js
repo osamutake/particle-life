@@ -49,7 +49,8 @@ export class CanvasRenderer {
 
   startRecording() {
     const chunks = []; // here we will store our recorded media chunks (Blobs)
-    const stream = this.canvas.captureStream(); // grab our canvas MediaStream
+    const stream = this.recordingFps == 0 ? this.canvas.captureStream() // 制限なし
+                                          : this.canvas.captureStream(this.recordingFps);
     this.rec = new MediaRecorder(stream);
     this.rec.ondataavailable = e => chunks.push(e.data);
     this.rec.onstop = () => this.onrecorded(new Blob(chunks, {type: 'video/webm'}));

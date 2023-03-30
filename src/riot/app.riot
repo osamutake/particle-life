@@ -8,7 +8,7 @@
       <div class="column is-narrow" style="line-height:1;position:relative;">
         
         <particles-display width="600" height="600" 
-            on-restart={()=> restart(true, true)} intf={displayIntf}></particles-display><br>
+            on-restart={()=> restart(true, !!document.fullscreenElement)} intf={displayIntf}></particles-display><br>
         
         <color-scale-editor width="600" height="40" 
             on-update={onColorScaleEditorUpdate} intf={colorScaleEditorIntf}></color-scale-editor>
@@ -53,7 +53,8 @@
       <!-- ワールドエディタ -->
       <div class="column is-narrow" id="world-editor">
         <interaction-editor width="600" intf={intEditorIntf} 
-            on-max-fps-change={()=>{ if(renderer) renderer.maxFps = $('#max-fps').value}}>
+            on-max-fps-change={(e)=>{ if(renderer) renderer.maxFps = e.target.value}}
+            on-recording-fps-change={(e)=>{ if(renderer) renderer.recordingFps = e.target.value}}>
         </interaction-editor>
       </div>
 
@@ -76,6 +77,10 @@
     #fps {
       text-align:right;
       max-width:600px;
+    }
+
+    help-popup > ul {
+      max-width: 600px;
     }
 
     .top-buttons {
@@ -331,6 +336,10 @@
       },
 
       requestFullScreen() {
+        this.displayIntf.update({screen: "F"});
+        if(document.fullscreenElement)
+          return;  // すでにフルスクリーン表示中
+
         const keydownWhileFullScreen = (e) => {
           if(e.key == 'n' || e.key == 'N') {
             this.restart(true, true);
@@ -339,8 +348,6 @@
             this.$("#pause").click();
           }
         };
-
-        this.displayIntf.update({screen: "F"});
 
         const canvas = document.getElementById("particles-display");
         canvas.requestFullscreen();
@@ -418,10 +425,12 @@
         if(options.length == 4) {
           [result.nspecies, result.nlattice, result.interact_seed, 
            result.world_seed] = options;
+           result.scale = 1;
         } else
         if(options.length == 5) {
           [result.nspecies, result.nlattice, result.interact_seed, 
            result.world_seed, result.tail] = options;
+           result.scale = 1;
         } else
         if(options.length == 6) {
           [result.nspecies, result.nlattice, result.interact_seed, 
