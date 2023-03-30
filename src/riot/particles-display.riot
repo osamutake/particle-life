@@ -193,6 +193,7 @@
           up: (e, x, y, points) => {
             mouseDoubleDown = false;
             [this.props.intf.repelX, this.props.intf.repelY] = [NaN, NaN]
+            this.state.scale = this.effectiveScale; // 1倍で表示されていれば実際に1にする
           }
         });
       },
@@ -327,82 +328,63 @@
           // fragment shader source code
           const fsrc = `
             precision mediump float;
-            uniform sampler2D u_texture;
-            uniform int       u_use_texture;
+            uniform int       u_point_shape;
+            uniform float     u_point_size2;
+            uniform float     u_shine;
+            uniform float     u_shine_base; // 0.05 / (0.05 + 1.0/u_shine)
             varying vec4      v_color;
             void main(void) {
-              vec4 c = vec4(1.0);
-              if(bool(u_use_texture)) {
-                c = texture2D(u_texture, gl_PointCoord);
-              }
-              if(c.a == 0.0) {
-                discard;
+              vec2 uv = (gl_PointCoord - 0.5) * 2.0;
+              float r2 = uv.x * uv.x + uv.y * uv.y;
+              float x;
+              if(u_point_shape == 0) {
+                x = (1.0 - r2) * u_point_size2;
               } else {
-                gl_FragColor = v_color * c;
+                if(u_point_shape == 1) {
+                  x = r2 * r2;
+                  x *= x;
+                } else
+                if(u_point_shape == 2) {
+                  x = r2 * r2;
+                } else
+                if(u_point_shape == 3) {
+                  x = r2;
+                } else
+                if(u_point_shape == 4) {
+                  x = sqrt(r2);
+                }
+                x = 1.0 - x;
+              }
+              if(x < 0.0) x = 0.0;
+              if(x > 1.0) x = 1.0;
+              gl_FragColor = v_color * x;
+              if(u_shine != 0.0) {
+                gl_FragColor += vec4( r2 < 1.0 ? 0.05 / (0.05 + r2/u_shine) - u_shine_base : 0.0 );
               }
             }
           `;
 
-          const program = new util.glProgram(
-            gl, vsrc, fsrc, 
-            ["a_position", "a_color"], 
-            ["u_point_size", "u_texture", "u_use_texture"]
-          );
+          const program = new util.glProgram(gl, vsrc, fsrc);
           program.use();
 
           return program;
         }
         
-        /// src から テクスチャを読み込む
-        loadTexture(src) {
-          const gl = this.gl;
-          const img = new Image();
-          img.onload = (e) => {
-            let texture;
-            if(this.texture) {
-              // 中途半端で使われないよう一旦 null にする
-              texture = this.texture;
-              this.texture = null;
-            } else {
-              texture = gl.createTexture();
-              util.finalizer.register(this, [gl.deleteTexture, [texture]], texture)
-            }
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-              gl.generateMipmap(gl.TEXTURE_2D);
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            // 読み込み終了
-            this.texture = texture;
-          }
-          // ソースをセット
-          img.src = src;
-        }
-        
         /// render
         // nTexture < 0 ならテクスチャを使わずに描画
-        render(nTexture, w, h, world, colorFunc, particleSize, frameBuffer = null) {
+        render(w, h, world, colorFunc, particleSize, frameBuffer = null) {
           if(frameBuffer) { // 与えられていればバッファーへ描画する
             frameBuffer.bind(()=>
-              this.#renderCore(nTexture, w, h, world, colorFunc, particleSize)
+              this.#renderCore(w, h, world, colorFunc, particleSize)
             );
           } else {
-            this.#renderCore(nTexture, w, h, world, colorFunc, particleSize)
+            this.#renderCore(w, h, world, colorFunc, particleSize)
           }
         }
 
-        #renderCore(nTexture, w, h, world, colorFunc, particleSize) {
+        #renderCore(w, h, world, colorFunc, particleSize) {
           const {gl, program, vbuffer, texture} = this;
           program.use();
-
-          if(texture && nTexture >= 0) {
-            program.u_texture.i = nTexture; // n 番を指定
-            gl.activeTexture(gl[`TEXTURE${nTexture}`]); // gl.TEXTUREn
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-            program.u_use_texture.i = true;
-          } else {
-            program.u_use_texture.i = false;
-          }
 
           gl.viewport(0, 0, w, h);
           gl.disable(gl.DEPTH_TEST);
@@ -416,7 +398,17 @@
           gl.clearColor(0, 0, 0, 0);  // 背景色は透明 (!= 黒)
           gl.clear(gl.COLOR_BUFFER_BIT);
 
-          program.u_point_size.f = Number.parseFloat(particleSize) + 0.25;
+          const {pshape, highlight} = world;
+          program.u_point_shape.i = pshape;
+          const psizeCorrection = [1.0, 1.1, 1.3, 1.5, 2];
+          const u_shine = highlight / psizeCorrection[pshape];
+          program.u_shine.f = u_shine;
+          program.u_shine_base.f = 0.05 / (0.05 + 1.0/u_shine);
+          let psize = Number.parseFloat(particleSize) + 0.25;
+          psize *= psizeCorrection[pshape];
+          program.u_point_size.f = psize;
+          program.u_point_size2.f = psize/4;
+
 
           // "#000000" 形式の配色を数値に直す
           let palette = [...Array(world.nspecies)].map((_, i) => {
@@ -491,6 +483,8 @@
           this.frameBuffer2A,
           this.frameBuffer2B,
           this.frameRendererTail,
+          this.frameRendererGlow1,
+          ...this.frameRendererGlow2,
           this.frameRendererOffset,
         );
         delete this.rendererGL;
@@ -498,6 +492,8 @@
         delete this.frameBuffer2A;
         delete this.frameBuffer2B;
         delete this.frameRendererTail;
+        delete this.frameRendererGlow1;
+        delete this.frameRendererGlow2;
         delete this.frameRendererOffset;
 
         // 2d context を得る
@@ -616,26 +612,16 @@
 
       renderGL(gl, canvas, world, colorFunc) {
 
-        if(!this.rendererGL) {
+        if(!this.rendererGL) 
           this.rendererGL = new this.ParticleRendererGL(gl);
-
-          // 32px x 32px circle
-          this.rendererGL.loadTexture(`data:image/png;base64,
-            iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABJklEQVRYw82X
-            oW4CQRRFz5sGV9O0+PYLUFiyGsVH9GtQWJJqPqFqFbYGvgB8SxBULSUXwSOp
-            IM22XebtsZPZeyc77819Rk0k3QNDYAD0gCfgzpe3wApYAnPg1cw2NIGkvqSp
-            pJ3qs/M9/f8IdyWNJVX6O5V/o/tb8UJSqeYoJRV1xUeSFmqehaRRnZNfQ/y7
-            ieKnf17q+pQX74RfllyML5ValdFAdS7R5B6egQ756Lgm5h1uDdySl0/gMXl7
-            zS2Oaw6T9/YoBskflih6JukdeAgy8GGSvoCbIAOHRDDJw0QU2+RJJopV8hgV
-            xTJ5hotiHt+KPb3OAk4/M7PNuQxfgH1G8b1rnp5jM3sDJhkNTFyzRZEsPJS2
-            Ipa3YjBpxWiWczi16PH8CAvfPn83UHV5AAAAAElFTkSuQmCC`);
-        }
 
         let tail = this.state.tail;
         if(!this.frameBuffer1) {
           this.frameBuffer1  = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
           this.frameBuffer2A = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
           this.frameBuffer2B = new util.glFrameBuffer(gl, this.state.size, this.state.size, false);
+          this.frameBuffer3A = new util.glFrameBuffer(gl, 128, 128, false);
+          this.frameBuffer3B = new util.glFrameBuffer(gl, 128, 128, false);
           
           const fsrcTail = `
             precision mediump float;
@@ -665,15 +651,59 @@
               gl_FragColor = max(c, now);
             }
           `;
-          this.frameRendererTail = new util.glTextureRenderer(gl, fsrcTail, 
-            ["u_size", "u_tail", "u_time", "u_texture2"]);
+          this.frameRendererTail = new util.glTextureRenderer(gl, fsrcTail);
           
+          const fsrcGlow1 = `
+            precision mediump float;
+            uniform sampler2D u_texture;
+            uniform float u_size_r;
+            const float n = 21.0;
+            const float eps = 0.000001;
+            void main(void){
+              vec2 uv = gl_FragCoord.xy * u_size_r;
+              vec4 c = vec4(0.0);
+
+              for(float x = -(n-1.0)/n/2.0; x < (n-1.0)/n/2.0 + eps; x += 1.0/n)
+                for(float y = -(n-1.0)/n/2.0; y < (n-1.0)/n/2.0 + eps; y += 1.0/n) {
+                  vec2 uv2 = uv + vec2(x, y) * u_size_r;
+                  c += texture2D(u_texture, uv2);
+                }
+              c *= 1.0 / n / n;
+              gl_FragColor = c;
+            }
+          `;
+          this.frameRendererGlow1 = new util.glTextureRenderer(gl, fsrcGlow1);
+
+          const fsrcGlow2 = (n) => `
+            precision mediump float;
+            uniform sampler2D u_texture;
+            uniform float u_size_r;
+            uniform float u_dev;
+            uniform float u_glowi;
+            const float n = ${n}.0; // 例えば 21
+            const float eps = 0.000001;
+            void main(void){
+              vec2 uv = gl_FragCoord.xy * u_size_r;
+              vec4 c = vec4(0.0);
+              for(float x = -n/2.0; x < n/2.0 + eps; x += 1.0)
+                for(float y = -n/2.0; y < n/2.0 + eps; y += 1.0) {
+                  vec2 uv2 = uv + vec2(x, y) * u_size_r;
+                  c += texture2D(u_texture, uv2) * exp(-(x*x+y*y)/u_dev);
+                }
+              gl_FragColor = c * u_glowi;
+            }
+          `;
+          this.frameRendererGlow2 = [7, 11, 15, 21].map( n => new util.glTextureRenderer(gl, fsrcGlow2(21)) );
+
           const fsrcOffset = `
             precision mediump float;
             uniform sampler2D u_texture;
+            uniform sampler2D u_texture2;
             uniform vec2 u_size;
             uniform float u_scale;
             uniform vec2 u_offset;
+            uniform float u_glowi;
+            uniform float u_glowr;
             void main(void){
               // ここで uv から gl_FragColor を求める
               float size = min(u_size.x, u_size.y);       // 正方形の一辺
@@ -684,15 +714,18 @@
               uv.y -= floor(uv.y);                        // 周期境界
               gl_FragColor = texture2D(u_texture, uv);
 
+              if(u_glowr != 0.0) {
+                gl_FragColor += u_glowi * texture2D(u_texture2, uv);
+              }
+
               // 範囲チェック
               vec2 test = ((gl_FragCoord.xy - of) / size - 0.5) / u_scale + 0.5;
               if( test.x < 0.0 || test.y < 0.0 || test.x > 1.0 || test.y > 1.0 ) 
                 gl_FragColor.rgb /= 2.0;  // 範囲外なら暗くする
             }
           `;
-          this.frameRendererOffset = new util.glTextureRenderer(gl, fsrcOffset, 
-            ["u_size", "u_scale", "u_offset"]);
-          
+          this.frameRendererOffset = new util.glTextureRenderer(gl, fsrcOffset);
+                    
           tail = 0;
           this.counter = 1;
         }
@@ -705,6 +738,9 @@
         let ssize = 2 * this.state.size;
         let psize = 2 * this.calcParticleSize(); 
 
+        let {glowr, glowi} = world;
+        glowr /= (world.scale / 1.5);
+
         if(this.frameBuffer1.width != ssize) {
           this.frameBuffer1.resize( ssize, ssize)
           this.frameBuffer2A.resize(ssize, ssize)
@@ -715,7 +751,7 @@
 
         // frameBuffer1 へ描画
         this.rendererGL.render(
-          0, ssize, ssize,
+          ssize, ssize,
           world, colorFunc, psize,
           this.frameBuffer1
         );
@@ -737,6 +773,36 @@
           gl.bindTexture(gl.TEXTURE_2D, src.texture);
         }, dest);
 
+        this.frameRendererGlow1.render(0, dest.texture, (gl, program)=> {
+          gl.disable(gl.BLEND);
+          gl.disable(gl.DEPTH_TEST);
+          gl.viewport(0, 0, this.frameBuffer3A.width, this.frameBuffer3A.height);
+          program.u_size_r.f = 1/this.frameBuffer3A.width;
+        }, this.frameBuffer3A);
+
+        // n = [7, 11, 15, 21]
+        const glow2n = glowr < 5 ? 0 :
+                       glowr < 9 ? 1 :
+                       glowr < 13 ? 2 : 3;
+        this.frameRendererGlow2[glow2n].render(0, this.frameBuffer3A.texture, (gl, program)=> {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+          gl.disable(gl.BLEND);
+          gl.disable(gl.DEPTH_TEST);
+          gl.viewport(0, 0, this.frameBuffer3B.width, this.frameBuffer3B.height);
+          program.u_size_r.f = 1/this.frameBuffer3B.width;
+          const nn = 10;
+          program.u_dev.f   = glowr * glowr || 0.1;
+          let coef = 0;
+          for(let x = -nn/2; x <= nn/2; x++)
+            for(let y = -nn/2; y <= nn/2; y++)
+              coef += Math.exp(-(x*x+y*y)/(glowr * glowr || 0.1));
+          program.u_glowi.f = glowi / coef;
+        }, this.frameBuffer3B);
+
         // dest に Offset 処理をして canvas へ描画
         this.frameRendererOffset.render(3, dest.texture, (gl, program)=> {
           gl.disable(gl.BLEND);
@@ -745,6 +811,15 @@
           program.u_size.f = [canvas.width, canvas.height];
           program.u_offset.f = [this.state.offsetX, -this.state.offsetY];
           program.u_scale.f = scale;
+          program.u_texture2.i = 4;
+          program.u_glowr.f = glowr;
+          program.u_glowi.f = glowi;
+          gl.activeTexture(gl.TEXTURE4);
+          gl.bindTexture(gl.TEXTURE_2D, this.frameBuffer3B.texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         });
 
         this.counter += 1;

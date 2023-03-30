@@ -31,7 +31,11 @@ export class ParticleLife {
       decel: 0.499,
       scale: 1.0,
       step: 1.0,
-      row_div: 3
+      row_div: 3,
+      pshape: 1,
+      highlight: 1,
+      glowr: 4,
+      glowi: 0.8,
     })
     util.importOptions(this, options, defaultParams)
 

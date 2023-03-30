@@ -1,14 +1,33 @@
-// ****************************************
-/// ユーティリティ関数群
-// ****************************************
+/** 
+ * ユーティリティ関数・クラスを提供する
+ * 
+ * @module src/util
+ */
 
-// obj に options を取り込む
-export function importOptions(obj, options, default_values) {
-  Object.keys(default_values).forEach( k => {
+/** 
+ * options のメンバーのうち defaultValues にキーがあるものを obj 取り込む
+ * options にキーが無ければ defaultValues の値が入る
+ * 
+ * @param {Object} obj
+ * @param {Object} options
+ * @param {Object} defaultValues
+ * @returns {Object} obj を返す
+ * 
+ * @example
+ * // options.option1 や options.option2 が指定されていれば this.option1 や this.option2 に値を取り込む
+ * // options に option1 が無ければ defaultValue1 が入る
+ * util.importOptions(this, options, {
+ *  option1: defaultValue1,
+ *  option2: defaultValue2,
+ * })
+ * 
+ */
+export function importOptions(obj, options, defaultValues) {
+  Object.keys(defaultValues).forEach( k => {
     if(options.hasOwnProperty(k)) {
       obj[k] = isNaN(options[k]) ? options[k] : Number(options[k]);
     } else {
-      obj[k] = default_values[k];
+      obj[k] = defaultValues[k];
     }
   });
   return obj;
@@ -158,6 +177,7 @@ class glAttribute
   
   // ポインタの割り当て
   set ptr(arg) {
+    if(isNaN(this.loc)) return;
     const [vbuffer, size, type, normalized, stride, offset] = arg;
     vbuffer.bind(()=> {
       this.gl.vertexAttribPointer(this.loc, size, type, normalized, stride, offset);
@@ -167,6 +187,7 @@ class glAttribute
   
   // 浮動小数点数(1～４個)の書き込み
   set f(arg) {
+    if(isNaN(this.loc)) return;
     if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.vertexAttrib1fv(this.loc, arg); break;
@@ -189,6 +210,7 @@ class glUniform
   
   // 浮動小数点数(1～４個)の書き込み
   set f(arg) {
+    if(!this.loc) return;
     if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.uniform1fv(this.loc, arg); break;
@@ -201,6 +223,7 @@ class glUniform
   
   // 整数値(1～４個)の書き込み
   set i(arg) {
+    if(!this.loc) return;
     if(!Array.isArray(arg)) arg = [arg]
     switch(arg.length) {
       case 1: this.gl.uniform1iv(this.loc, arg); break;
@@ -213,6 +236,7 @@ class glUniform
   
   // 浮動小数行列の書き込み (2x2, 3x3, 4x4)
   #matCore(transpose, values) {
+    if(!this.loc) return;
     switch(values.length) {
       case  4: this.gl.uniformMatrix2fv(this.loc, transpose, values); break;
       case  9: this.gl.uniformMatrix3fv(this.loc, transpose, values); break;
@@ -244,15 +268,37 @@ export class glProgram
       throw new Error(gl.getProgramInfoLog(this.program));
     
     // attribute, uniform をメンバーとして登録する
+    // 宣言だけされていて実際にコードで使っていないものは削除されるので
+    // アクセスしようとすると問題になることに注意が必要
+
+    let nattr = gl.getProgramParameter(this.program, gl.ACTIVE_ATTRIBUTES);
+    for(let i = 0; i < nattr; i++) {
+      const {name} = gl.getActiveAttrib(this.program, i);
+      const loc = gl.getAttribLocation(this.program, name);
+      this[name] = new glAttribute(gl, loc);
+    }
     attrs.forEach( (attr)=> {
+      if(this[attr]) return;  // すでに登録されている
       const loc = gl.getAttribLocation(this.program, attr);
       this[attr] = new glAttribute(gl, loc);
     });
     
+    let nunif = gl.getProgramParameter(this.program, gl.ACTIVE_UNIFORMS);
+    for(let i = 0; i < nunif; i++) {
+      const {name} = gl.getActiveUniform(this.program, i);
+      const loc = gl.getUniformLocation(this.program, name);
+
+      // null になる場合があるそうで
+      // https://stackoverflow.com/questions/22307766/how-to-use-getactiveuniform-in-webgl#comment83528379_22314513
+      if(loc == null) continue;
+      this[name] = new glUniform(gl, loc);
+    }
     unifs.forEach( (unif)=> {
+      if(this[unif]) return;  // すでに登録されている
       const loc = gl.getUniformLocation(this.program, unif);
       this[unif] = new glUniform(gl, loc);
     });
+
   }
   
   destructor() {  // 手動で呼ぶ必要がある
@@ -297,10 +343,15 @@ export class glBuffer
     this.gl.deleteBuffer(this.buffer);
   }
 
-  bind(func) {
+  /** 
+   * @param [func] - func が渡されれば bind して func に args を与えてを呼んで unbind する
+   * 渡されなければ bind するだけなので後で必要に応じて別途 unbind すること
+   * @param [...args]
+  */
+  bind(func, ...args) {
     if (func && typeof func === 'function') {
       this.bind();
-      try { func(); } finally { this.unbind(); }
+      try { func(...args); } finally { this.unbind(); }
     } else {
       this.gl.bindBuffer(this.type, this.buffer);
     }
@@ -317,6 +368,11 @@ export class glBuffer
     });
     this.dataLength = float32Array.length;
   }
+
+  /**
+   * data で書き込まれたデータの数が入る
+   */
+  dataLength= undefined;
   
   subData(offset, float32Array = null) {
     this.bind(()=>{
@@ -409,10 +465,15 @@ export class glFrameBuffer
     }
   }
 
-  bind(func) {
+  /** 
+   * @param [func] - func が渡されれば bind して func に args を与えてを呼んで unbind する
+   * 渡されなければ bind するだけなので後で必要に応じて別途 unbind すること
+   * @param [...args]
+  */
+  bind(func, ...args) {
     if (func && typeof func === 'function') {
       this.bind();
-      try { func(); } finally { this.unbind(); }
+      try { func(...args); } finally { this.unbind(); }
     } else {
       const {gl, frameBuffer} = this;
       gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);

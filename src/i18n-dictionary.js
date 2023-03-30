@@ -59,6 +59,18 @@ export default {
     '使い方':
     'Usage',
     
+    '粒子形状':
+    'Particle Shape',
+
+    'ハイライト':
+    'Highlight', 
+
+    'グロー距離':
+    'Glow Dist.', 
+
+    'グロー明るさ':
+    'Glow Int.', 
+
     '粒子種数':
     'N Species',
     
