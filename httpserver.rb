@@ -8,5 +8,6 @@ s = HTTPServer.new(
   :DocumentRoot => File.join(Dir::pwd, 'dist')
 )
 s.mount('/src', WEBrick::HTTPServlet::FileHandler, 'src')
+s.mount('/doc', WEBrick::HTTPServlet::FileHandler, 'doc')
 trap("INT"){ s.shutdown }
 s.start

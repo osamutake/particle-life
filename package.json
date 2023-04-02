@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "make test",
-    "lint" : "eslint src/*.js",
+    "lint": "eslint src/*.js",
     "build": "make",
     "clean": "make clean",
     "release-build": "make release-build",
-    "server": "ruby httpserver.rb"
+    "server": "ruby httpserver.rb",
+    "docs": "./node_modules/.bin/jsdoc --configure config/jsdoc.json --verbose -d ./doc/ -r src Readme.md"
   },
   "author": "Osamu Takeuchi <osamu@big.jp>",
   "license": "MIT",
@@ -19,10 +20,12 @@
   "devDependencies": {
     "@babel/core": "^7.21.3",
     "@riotjs/cli": "^6.1.0",
+    "docdash": "^2.0.1",
     "esbuild": "^0.17.11",
     "eslint": "^8.36.0",
     "jasmine-browser-runner": "^1.3.0",
     "jasmine-core": "^4.5.0",
+    "jsdoc": "^4.0.2",
     "sass": "^1.59.3"
   }
 }

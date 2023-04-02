@@ -91,4 +91,8 @@ export class CanvasRenderer {
     this.requestID = window.requestAnimationFrame((ts) => this.frame(ts));
   }
 
+  get isPaused() {
+    return !this.requestID;
+  }
+
 }

@@ -7,8 +7,9 @@
     <div class="columns is-desktop">
       <div class="column is-narrow" style="line-height:1;position:relative;">
         
-        <particles-display width="600" height="600" 
-            on-restart={()=> restart(true, !!document.fullscreenElement)} intf={displayIntf}></particles-display><br>
+        <particles-display width="600" height="600" intf={displayIntf}
+            on-restart={()=> restart(true, !!document.fullscreenElement)} 
+            on-pause={()=> this.$("#pause").click()}></particles-display><br>
         
         <color-scale-editor width="600" height="40" 
             on-update={onColorScaleEditorUpdate} intf={colorScaleEditorIntf}></color-scale-editor>
@@ -135,6 +136,10 @@
   </style>
 
   <script>
+    /**
+    * @module riot/app
+    */
+
     import { CanvasRenderer } from '../canvas-renderer.js'
     import { interactionSets } from '../interaction-sets.js'
     import { ColorScale, colorScaleList } from "../color-scale.js"
@@ -188,6 +193,10 @@
       },
 
       onMounted() {
+
+        // ショートカットキーを登録
+        document.addEventListener('keydown', this.onKeyDown);
+
         this.renderer = new CanvasRenderer(
           this.displayIntf.canvas(),                  // canvas
           this.render,                                // render func
@@ -200,6 +209,32 @@
 
         this.setParameters(this.getSearchString(false));
         this.restart();
+      },
+
+      onUnmounted() {
+        document.removeEventListener('keydown', this.onKeyDown);
+      },
+
+      onKeyDown(e) {
+        if(e.key == 'n' || e.key == 'N') {
+          event.preventDefault();
+          event.stopPropagation();
+          this.restart(true, !!document.fullscreenElement);
+        } else
+        if(e.key == ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          this.$("#pause").click();
+        } else
+        if(e.key == 'Enter' && e.altKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          if(document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            this.requestFullScreen();
+          }
+        }
       },
 
       onControlsUpdate(e) {
@@ -251,6 +286,9 @@
         elemFps.innerText = `frame# ${frame}, ${String(renderer.fps).slice(0, 4)} fps`;
       },
 
+      /**
+       * １フレーム分の計算を行い表示を更新する
+       */
       render() {
         this.world.interactParticles();
         this.world.repelParticles(this.displayIntf.repelX, this.displayIntf.repelY);
@@ -259,6 +297,11 @@
         this.displayFps(this.renderer);
       },
 
+      /**
+       * this.world に ParticleLife のインスタンスを作成あるいは更新し初期配置に戻す
+       * @param {bool} [randomize=false] - 設定を乱数で更新するかどうか
+       * @param {bool} [fullScreen=false] - フルスクリーンにするかどうか
+       */
       createWorld(randomize=false, fullScreen=false) {
         const options = this.getWorldOptions(randomize, fullScreen);
         if(this.root.classList.contains('world-editor-shown')) {
@@ -286,6 +329,11 @@
         ]);
       },
 
+      /**
+       * this.world に ParticleLife のインスタンスを作成あるいは更新し初期配置からスタートする
+       * @param {bool} [randomize=false] - 設定を乱数で更新するかどうか
+       * @param {bool} [fullScreen=false] - フルスクリーンにするかどうか
+       */
       restart(randomize = false, fullScreen = false) {
         if(this.world) this.world.recreating = true;
         try {
@@ -334,7 +382,7 @@
               this.requestFullScreen(); 
           }, 2000);
         } else {
-          this.requestFullScreen(); 
+          this.requestFullScreen();
         }
       },
 
@@ -347,35 +395,38 @@
         setTimeout(()=> style.display = 'none', 1600);
       },
 
+      /**
+       * フルスクリーンに切り替える
+       */
       requestFullScreen() {
+        // キャンバスサイズを変更
         this.displayIntf.update({screen: "F"});
+
+        // すでにフルスクリーン表示中ならこれで終わり
         if(document.fullscreenElement)
-          return;  // すでにフルスクリーン表示中
+          return;
 
-        const keydownWhileFullScreen = (e) => {
-          if(e.key == 'n' || e.key == 'N') {
-            this.restart(true, true);
-          } else
-          if(e.key == ' ') {
-            this.$("#pause").click();
-          }
-        };
-
+        // フルスクリーンにする
         const canvas = document.getElementById("particles-display");
-        canvas.requestFullscreen();
+        canvas.requestFullscreen({navigationUI: "hide"}).then(() => {}).catch((err) => {
+          this.displayIntf.update({screen: this.state.controlsSetting.screen});
+          alert(`Requesting fullscreen in keydown event is denied, probably due to the bug of Firefox: ${err.message} (${err.name})`);
+        });
 
         canvas.addEventListener('fullscreenchange', (e) => {
           if(!document.fullscreenElement) {
             // フルスクリーンが終了した
-            document.removeEventListener('keydown', keydownWhileFullScreen);
+            // canvas を元のサイズに戻す
             this.displayIntf.update({screen: this.state.controlsSetting.screen});
           }
         });
-
-        document.addEventListener('keydown', keydownWhileFullScreen);
       },
 
-      // 数値を 0-9, A-Z, a-z のアルファベットに直す
+      /**
+       * 数値を 0-9, A-Z, a-z のアルファベットに直す
+       * @param {number} n - 変換される数値
+       * @returns {string} 変換結果の１文字を返す
+       */
       num2char(n) {
         n = Number(n);
         const offset = n < 10          ? 0x30           :     // '0'
@@ -387,7 +438,11 @@
         return String.fromCharCode(offset + n);
       },
       
-      // 0-9, A-Z, a-z のアルファベットを数値に直す
+      /** 
+       * 0-9, A-Z, a-z のアルファベットを数値に直す 
+       * @param {string} c - 尖頭のもc時を数値にして返す
+       * @returns {number} おかしな値が与えられた場合には NaN を返す
+       */
       char2num(c) {
         if(c == '?') return NaN;
         c = c.charAt(0);
@@ -397,6 +452,9 @@
                ('0' <= c && c <= '9') ? n - 0x30           : NaN;
       },
 
+      /**
+       *  現在の設定を search 文字列に直す
+       */
       encodeParameters() {
         const options = this.state.controlsSetting || this.controlsIntf.default_state;
         let search = '?'; //  + (options.screen != 'S' ? options.screen : ''); 保存しないことにした
@@ -414,16 +472,26 @@
 
         search += "_" + this.num2char(options.pshape);
         search += ("0" + Math.round(options.highlight*4).toString(16)).slice(-2);
-        search += ("0" + Math.round(options.glowr*20).toString(16)).slice(-2);
+        search += ("0" + Math.round(options.glowr / options.scale * 20).toString(16)).slice(-2);
         search += ("0" + Math.round(options.glowi*20).toString(16)).slice(-2);
         return search;
       },
 
+      /**
+       *  search 文字列に与える設定文字列を生成する
+       *  @param {bool} randomizeSeeds - シード値を再生成するかどうか
+       */
       getSearchString(randomizeSeeds = false) {
+        // randomize するため controls に移譲する
         return this.controlsIntf.getSearchString(
                   this.encodeParameters(), randomizeSeeds)
       },
 
+      /**
+       *  search 文字列で与えられる設定を取り込む
+       *  @param {string} search - location.search に与えられるような設定文字列 
+       *  @param {bool} fullScreen - フルスクリーンにするかどうか
+       */
       setParameters(search, fullScreen = false) {
         let result = this.parseParameters(search);
         if(fullScreen) result.screen = "F";
@@ -431,6 +499,10 @@
         this.colorScaleEditorIntf.update(result.paletteSetting);
       },
 
+      /**
+       * search 文字列から this.controlsIntf.update / this.colorScaleEditorIntf.update に渡すべき内容を生成する
+       * @param {string} search - location.search に与えられるような設定文字列
+       */
       parseParameters(search) {
         if(!search)   // 何も指定されないときのデフォルト
           search = this.getSearchString(true);
@@ -493,39 +565,55 @@
         }
         
         if(displaySetting) {
-          this.state.paletteSetting ||= {}
-          this.state.paletteSetting.iscale = this.char2num(displaySetting.slice(0, 1), 16);
-          if(displaySetting.slice(1, 3)=='xx')  { // offset
-            displaySetting = displaySetting.slice(0, 1) +
-                             ("0"+Math.round(Math.random()*255).toString(16)).slice(-2) +
-                             displaySetting.slice(3);
+          result.paletteSetting ||= {}
+          let iscale = this.char2num(displaySetting.slice(0, 1), 16);
+          if( isNaN(iscale) || iscale < 0 || colorScaleList.length <= iscale )
+            iscale = 0;
+          result.paletteSetting.iscale = iscale;
+
+          let offset = parseInt(displaySetting.slice(1, 3), 16) / 255;
+          if( isNaN(offset) || offset < 0 || 1 <= offset) {
+            offset = Math.round(Math.random() * 100) / 100;
           }
-          this.state.paletteSetting.offset = parseInt(displaySetting.slice(1, 3), 16) / 255;
-          if(displaySetting.slice(3, 5)=='xx')  { // scale
+          result.paletteSetting.offset = offset;
+
+          let scale = 1 + parseInt(displaySetting.slice(3, 5), 16) / 16;
+          if( isNaN(scale) || scale < 1 || 17 <= scale) {
             let rand = Math.random() ** 4;  // ゼロに近い方をより多く
             if(rand < 0.2) rand = 0; // 全範囲を使う確率をある程度取る
-            displaySetting = displaySetting.slice(0, 3) +
-                             ("0"+Math.round(rand*32).toString(16)).slice(-2) +
-                             displaySetting.slice(5);
+            scale = 1 + rand;
           }
-          this.state.paletteSetting.scale  = 1 + parseInt(displaySetting.slice(3, 5), 16) / 16;
-          result.particleSize  = displaySetting.slice(5) / 2;
+          result.paletteSetting.scale  = scale;
+
+          let size = displaySetting.slice(5) / 2;
+          if( isNaN(size) || size < 0.5 || 100 <= size) {
+            size = 4;
+          }
+          result.particleSize  = size;
         }
 
         result.pshape = this.char2num(particleSetting.slice(0, 1));
         result.highlight = parseInt(particleSetting.slice(1, 3), 16) / 4;
-        result.glowr = parseInt(particleSetting.slice(3, 5), 16) / 20;
+        result.glowr = parseInt(particleSetting.slice(3, 5), 16) / 20 * result.scale;
         result.glowi = parseInt(particleSetting.slice(5, 7), 16) / 20;
 
         return result;
       },
 
+      /**
+       * ParticleLife に渡すためのオプションを得る
+       * @param {bool} [randomize=false] - 設定を乱数で更新するかどうか
+       * @param {bool} [fullScreen=false] - フルスクリーンにするかどうか
+       */
       getWorldOptions(randomize, fullScreen) {
         if(randomize)
           this.setParameters(this.getSearchString(randomize), fullScreen);
         return this.state.controlsSetting;
       },
 
+      /**
+       * 現在のワールドへの URL を得る
+       */
       getWorldURL() {
         return location.href.replace(/[^\/]*$/, this.encodeParameters())
       },

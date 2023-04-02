@@ -19,7 +19,7 @@ dist/particle-life.wasm: src/particle-life.cpp
 	$(CC) -o dist/particle-life.wasm -g src/particle-life.cpp -s EXPORTED_FUNCTIONS=_malloc,_free  --no-entry -s STANDALONE_WASM --profiling
 	@# -fdebug-prefix-map=/path-replaced=/path-replacing    DWARF 情報をブラウザで見られない時に追加する
 
-obj/riot_tags.js: src/riot/tags.js $(wildcard src/riot/*.riot) src/canvas-renderer.js src/interaction-sets.js src/color-scale.js src/particle-life.js src/xorshift128.js src/help-contents.js
+obj/riot_tags.js: $(wildcard src/riot/*.js) $(wildcard src/riot/*.riot) src/canvas-renderer.js src/interaction-sets.js src/color-scale.js src/particle-life.js src/xorshift128.js src/help-contents.js
 	mkdir -p obj
 	$(RIOT) src/riot/tags.js -o obj/riot_tags.js --sourcemap inline -c config/riot.config.js
 

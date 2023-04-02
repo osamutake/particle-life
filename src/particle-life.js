@@ -12,11 +12,24 @@
 import { PLInteractionMatrix } from './pl-interaction-matrix.js'
 import { PLParticles } from './pl-particles.js'
 
+/**
+ * Particle Life 計算の全体設定を保持します
+ */
 export class ParticleLife {
+  /**
+   * コンストラクタ
+   * @param {Object} options - 設定を与える
+   * @param {XorShift128} rand - world_seed により生成された乱数器
+   */
   constructor(options = {}, rand) {
     this.update(options, rand);
   }
 
+  /**
+   * 設定を変更する
+   * @param {Object} options - 設定を与える
+   * @param {XorShift128} rand - world_seed により生成された乱数器 省略時には現在のものから変更しない
+   */
   update(options, rand = this.rand) {
 
     // 指定されていないパラメータは現状通り
@@ -81,6 +94,14 @@ export class ParticleLife {
     this.mem[7] = this.row_div;
   }
 
+  /**
+   * デストラクタ
+   * リソースを解放したいときに手動で呼び出す必要がある
+   * util.destruct 経由で呼び出すと null の確認が必要なくて便利
+   * 
+   *  @example
+   *  util.destruct(world)
+   */
   destructor() {
     this.mem.free;
     util.destruct(this.rand);
@@ -88,7 +109,11 @@ export class ParticleLife {
     util.destruct(this.particles);
   }
 
-  // 粒子配置の初期設定
+  /**
+   * 粒子配置の初期設定を行う
+   * 
+   * @param {Function} func - (i, j) を渡されるので species, x, y, vx, vy を返す
+   */
   setupParticles(func) {
     for(let i = 0; i < this.nlattice; i++) {
       for(let j = 0; j < this.nlattice; j++) {
@@ -97,13 +122,19 @@ export class ParticleLife {
     }
   }
   
-  // 粒子同士の相互作用を計算して vx, vy を更新する
+  /**
+   * 粒子同士の相互作用を計算して vx, vy を更新する
+   */
   interactParticles() {
     wasm.interactParticles(
       this.mem.ptr, this.interaction.mem.ptr, this.particles.mem.ptr);
   }
   
-  // 斥力効果を及ぼす
+  /**
+   * 斥力効果を及ぼす
+   * @param {Integer} repelX - 斥力効果を及ぼす中心座標の X
+   * @param {Integer} repelY - 斥力効果を及ぼす中心座標の Y
+   */
   repelParticles(repelX, repelY) {
     if(isNaN(repelX) || isNaN(repelY)) return;
 

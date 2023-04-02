@@ -10,7 +10,9 @@ import i18nDictionary from  './i18n-dictionary.js'
 // すべてのタグを含めコンパイルされたものを obj から読み込む
 import { registerAllTags } from '../obj/riot_tags.js'
 
-
+/**
+ * 起動時に一度だけ呼ばれます
+ */
 async function main() {
 
   // グローバル変数を設定

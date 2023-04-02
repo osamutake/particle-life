@@ -1,0 +1,9 @@
+{
+  "opts": {
+    "template": "node_modules/docdash"
+  },
+  "plugins": ["./config/jsdoc-plugin-riot4.js"],
+  "source": {
+        "includePattern": ".+\\.js|\\.riot$"
+  }
+}

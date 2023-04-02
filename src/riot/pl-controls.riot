@@ -355,7 +355,7 @@ p<!-----------------------------------------------------------------
           particleSize: ['required', 'numeric', 'between:0,127.5'],
           pshape: ['required', 'integer', 'between:0,4'],
           highlight: ['required', 'numeric', 'between:0,50'],
-          glowr: ['required', 'numeric', 'between:0,8'],
+          glowr: ['required', 'numeric', `between:0,${8 * state.scale}`],
           glowi: ['required', 'numeric', 'between:0,10'],
         };
 
@@ -402,10 +402,20 @@ p<!-----------------------------------------------------------------
         if(search == '?') search = currentSetting;
 
         // URL 指定の場合
-        if(!search) search = location.search;
+        if(!search) {
+          // 先頭の ? を外して & で分け、key = value について処理する
+          let searchList = location.search.slice(1).split('&');
+          search = '?' + searchList.filter((s)=> {
+            const [k, v] = s.split('=');
+            if(k == "world-editor") {
+              this.dispatchEvent('show-editor');
+            }
+            return !v;
+          })[0];  // 残りがパラメータのはず
+        }
 
         // URL で指定されてなければお勧め設定
-        if(!search) {
+        if(search == '?') {
           search = this.recommendations.find((rec)=> rec.length > 2)[1];
           this.$('#recommendation').value = search;
         }

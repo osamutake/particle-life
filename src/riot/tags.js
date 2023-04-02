@@ -1,9 +1,10 @@
-/************************************************
-
- すべての riot タグを register する
- 新しいタグを追加した場合にはこのファイルも編集が必要
-
-*************************************************/
+/** 
+ * すべての riot タグを register する
+ * 新しいタグを追加した場合にはこのファイルも編集が必要
+ * プラグインもいくつか組み込む
+ * 
+ * @module src/riot/tags
+ */
 
 import t0 from './app.riot'
 import t1 from './raw.riot'
@@ -15,6 +16,9 @@ import t6 from './help-popup.riot'
 import t7 from './video-holder.riot'
 import t8 from './i18n.riot'
 
+/**
+ * @param riot
+*/
 export function registerAllTags(riot) {
   installPlugins(riot)
   let tags = [t0, t1, t2, t3, t4, t5, t6, t7, t8]
