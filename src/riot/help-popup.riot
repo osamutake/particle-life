@@ -36,6 +36,11 @@
       }
     }
 
+    svg.bi {
+      width: 12px;
+      height: 12px;
+    }
+
     .background {
       display: none;
     }
@@ -107,7 +112,25 @@
   </style>
 
   <script>
+    /**
+     * ヘルプを表示する
+     * @module riot/help-popup
+     * @example
+     * <!--
+     *   helpPopupIntf = {
+     *     show: null
+     *   }     
+     * -->
+     * <help-popup intf={helpPopupIntf}>
+     *   <ul>
+     *     <li each={message in messages}><raw html={message}></raw></li>
+     *     <li><i18n>ショートカットキー： 'space' で一時停止、'N' で次のワールドを生成、'Ctrl+Enter' で全画面（Firefoxでは動作せず）</i18n></li>
+     *   </ul>
+     * </help-popup>
+     */
     import helpContents from '../help-contents.js'
+    import {sleep} from '../util.js'
+    import {i18n} from '../i18n.js'
 
     export default {
       onBeforeMount(props, state) {
@@ -219,11 +242,11 @@
 
         for(let i = 0; i < 8; i++){
           elem.style.display = "none";
-          await util.sleep(200);
+          await sleep(200);
           if(cancelRequested) break;
           
           elem.style.display = display;
-          await util.sleep(600);
+          await sleep(600);
           if(cancelRequested) break;
         }
       }

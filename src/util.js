@@ -1,11 +1,11 @@
 /** 
  * ユーティリティ関数・クラスを提供する
  * 
- * @module src/util
+ * @module util
  */
 
 /** 
- * options のメンバーのうち defaultValues にキーがあるものを obj 取り込む
+ * options のメンバーのうち defaultValues にキーがあるものを obj 取り込む<br>
  * options にキーが無ければ defaultValues の値が入る
  * 
  * @param {Object} obj
@@ -16,7 +16,7 @@
  * @example
  * // options.option1 や options.option2 が指定されていれば this.option1 や this.option2 に値を取り込む
  * // options に option1 が無ければ defaultValue1 が入る
- * util.importOptions(this, options, {
+ * importOptions(this, options, {
  *  option1: defaultValue1,
  *  option2: defaultValue2,
  * })
@@ -33,10 +33,12 @@ export function importOptions(obj, options, defaultValues) {
   return obj;
 }
 
-// Sleep 関数
-// https://camp.trainocate.co.jp/magazine/howto-javascript-sleep/
 /**
- * await することで ms ミリ秒待つ
+ * await することで ms ミリ秒待つ<br>
+ * <a href="https://camp.trainocate.co.jp/magazine/howto-javascript-sleep/">
+ * https://camp.trainocate.co.jp/magazine/howto-javascript-sleep/
+ * </a> を参照
+ * 
  * @param {number} ms - ミリ秒
  * @returns {Promise}
  * @example
@@ -46,20 +48,34 @@ export async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/** javascript オブジェクト this がガーベージコレクションされる
-* 時に free すべき member を管理する
-*
-* @example
-*  // manager が this だと永遠に GC されないので注意
-*  finalizer.register(this, [manager.free, [member]], member)
-*
-*  // 手動で finalize したら unregister すること
-*  finalizer.unregister(member)
-*
-*  // あるいは this をキーにしてもいい
-*  finalizer.register(this, [manager.free, [member]], this)
-*  finalizer.unregister(this)
-*/
+/** 
+ * javascript オブジェクト this がガーベージコレクション(GC)される
+ * 時に free すべき member を管理する 
+ * <a href="https://www.google.com/search?q=FinalizationRegistry">FinalizationRegistry</a> 
+ * を保持する。詳細はリンク先を参照。
+ *
+ * @example
+ *  // this が GC されるときに manager.free(this.menber) するよう登録する
+ *  // ３つ目の引数は unregister する際のキーとしてのみ用いられる
+ *  // ２つ目の引数に this のメンバー関数を与えると永遠に GC されないので注意
+  *  finalizer.register(this, [manager.free, [this.member]], this.member)
+ *
+ *  // 手動で finalize したら unregister すること
+ *  manater.free(this.member)
+ *  finalizer.unregister(member)
+ *
+ *  // unregister 用のキーに this を使っても構わない
+ *  finalizer.register(this, [manager.free, [member]], this)
+ *  finalizer.unregister(this)
+ *
+ *  // 複数のメンバーを解放することもできる
+ *  // this が GC されるときに manager1.free(this.member1), manager2.free(this.member2) を呼ぶ
+ *  finalizer.register(this, [
+ *        [manager1.free, [this.member1]], 
+ *        [manager2.free, [this.member2]],
+ *      ], this)
+ *
+ */
 export const finalizer = new FinalizationRegistry((destructor) => {
   if(Array.isArray(destructor[0])) {
     for(let d of destructor) {
@@ -78,35 +94,60 @@ export const finalizer = new FinalizationRegistry((destructor) => {
   }
 });
 
-/** wasm ファイルからモジュールを読み込む
- * 
- * wasm で export された関数をメンバ関数として呼び出せるようになる
- * 
- * メモリアクセス用のヘルパーを含めて返す
+/**
+ * wasm ファイルからモジュールを読み込む<br>
+ * <br>
+ * wasm で export された関数をメンバ関数として呼び出せるようになる<br>
+ * メモリアクセス用のヘルパーを含めて返す<br>
  * 
  * @param {string} wasmFile - ファイル名を与える
  * @returns {Object}
  * @example
  * const wasm = loadWasm('example.wasm')
  * 
- * // メモリを確保 
+ * // ヒープメモリに直接アクセス
+ * // (u64/i64/u32/i32/u16/i16/u8c/u8/i8/f32/f64) を選べる
+ * console.log(wasm.mem.u32[addr / 4])
+ * 
+ * // ヒープからメモリを malloc して TypedArray として返す
  * // (u64/i64/u32/i32/u16/i16/u8c/u8/i8/f32/f64) を選べる
  * const mem = wasm.mem.u32.alloc(2)
  * mem[0] = 4
  * mem[1] = 5
  * 
- * // wasm 内の関数を呼び出す
+ * // .wasm 内の関数が wasm のメンバ関数として登録される
+ * // mem へのポインタを wasm 内の関数に渡す際には mem.ptr を参照すればよい
  * wasm.someFuncInWasm(mem.ptr)
  * 
  * // 解放する
  * mem.free()
  * 
- * // 手動で free() を呼ばなくても mem が GC されるときには free() される
+ * // 手動で free() を呼ばなくても mem が GC されるときには free() されるので
+ * // とても大きなブロック以外は free しなくても大丈夫
  * 
  */
-export async function loadWasm(wasmFile) {
-  let obj = await WebAssembly.instantiateStreaming(fetch(wasmFile), {})
-  let wasm = Object.assign({}, obj.instance.exports);
+export async function loadWasm(wasmFile, base64 = false) {
+
+  let obj;
+  if(base64) {  // wasm ファイルを base64 エンコードしたものが与えられた
+    const raw = atob(wasmFile);                   // 生コードに直して
+    const len = raw.length;
+    const data = new Uint8Array(len);             // TypedArray に入れて
+    for (let i = 0; i < len; i++) {
+      data[i] = raw.charCodeAt(i);
+    }
+    obj = await WebAssembly.instantiate(data);    // インスタンス化する
+  } else {      // wasm ファイルの URL が与えられた
+    obj = await WebAssembly.instantiateStreaming(
+      // preload した結果を使えるようパラメータを渡して fetch する
+      // https://stackoverflow.com/questions/52635660/can-link-rel-preload-be-made-to-work-with-fetch
+      fetch(wasmFile, {
+        method: 'GET',
+        credentials: 'include',
+        mode: 'no-cors',
+      }))
+  }
+  let wasm = {...obj.instance.exports};
 
   // ヒープメモリのユーティリティ
   
@@ -165,8 +206,8 @@ export async function loadWasm(wasmFile) {
 }
 
 /** 
- * obj のデストラクタを呼ぶ 
- * @param {Object} ...objs - null でないものに destructor が定義されていれば呼び出す
+ * obj のデストラクタ .destructor() を呼ぶ 
+ * @param {...Object} objs - null でないものに destructor が定義されていれば呼び出す
  * @example
  * let obj1 = new Object1()
  * let obj2 = new Object1()
@@ -207,6 +248,7 @@ export function implementEventTarget(obj) {
 
 /**
  * ８桁の十六進数文字列を返す
+ * @param {number} i
  */
 export function int2hex(i) {
   return ("000"+(((i|0) >>> 16)&0xffff).toString(16)).slice(-4) +
@@ -217,23 +259,27 @@ export function int2hex(i) {
 
 /** 
  * WebGL attribute のラッパークラス
- * 
  */
 class glAttribute
 {
   /** 
    * @param {WebGLRenderingContext} gl
-   * @param {GLuint} loc
+   * @param {GLuint} loc - gl.getAttribLocation(program, name) の戻り値
    */
   constructor(gl, loc) {
     // これらも必要に応じて読み取れる
+
+    /** @member {WebGLRenderingContext} */
     this.gl = gl;
+
+    /** @member {GLuint} */
     this.loc = loc;
   }
-  
+
   /** 
-   * ポインタを割り当てる
-   * @param {Array} arg - [vbuffer, size, type, normalized, stride, offset]
+   * ポインタを割り当てる<br>
+   * [vbuffer, size, type, normalized, stride, offset] を渡す
+   * @type {any[]}
    */ 
   set ptr(arg) {
     if(isNaN(this.loc)) return;
@@ -246,7 +292,7 @@ class glAttribute
   
   /** 
    * 浮動小数点数(1～４個)の書き込み
-   * @param {float|Array} - 書き込まれる数値
+   * @type {number|number[]}
    */
   set f(arg) {
     if(isNaN(this.loc)) return;
@@ -269,17 +315,20 @@ class glUniform
 {
   /** 
    * @param {WebGLRenderingContext} gl
-   * @param {GLuint} loc
+   * @param {WebGLUniformLocation} loc
    */
   constructor(gl, loc) {
     // これらも必要に応じて読み取れる
+    /** @type {WebGLRenderingContext} */
     this.gl = gl;
+
+    /** @type {WebGLUniformLocation} */
     this.loc = loc;
   }
   
   /** 
    * 浮動小数点数(1～４個)の書き込み
-   * @param {float|Array} - 書き込まれる数値
+   * @type {number|number[]}
    */
   set f(arg) {
     if(!this.loc) return;
@@ -295,7 +344,7 @@ class glUniform
   
   /** 
    * 整数値(1～４個)の書き込み
-   * @param {integer|Array} - 書き込まれる数値
+   * @type {number|number[]}
    */
   set i(arg) {
     if(!this.loc) return;
@@ -321,7 +370,7 @@ class glUniform
 
   /** 
    * 浮動小数行列の書き込み (2x2, 3x3, 4x4)
-   * @param {Array} - 書き込まれる数値
+   * @type {number[]}
    */
   set mat(values) {
     this.#matCore(false, values)
@@ -329,7 +378,7 @@ class glUniform
 
   /** 
    * 浮動小数行列を転置して書き込み (2x2, 3x3, 4x4)
-   * @param {Array} - 書き込まれる数値
+   * @type {number[]}
    */
   set matTrans(values) {
     this.#matCore(true, values)
@@ -337,27 +386,27 @@ class glUniform
 }
 
 /** 
- * WebGLProgram のラッパークラス
- * 
+ * WebGLProgram のラッパークラス<br>
+ * <br>
  * vsrc, fsrc をコンパイルして program を作成するとともに
- * attr, unif へアクセスするための手段を返す
+ * attr, unif へアクセスするための手段を返す<br>
  * @example
- * let program = new util.glProgram(gl, vsrc, fsrc)
+ * let program = new glProgram(gl, vsrc, fsrc)
  * program.u_unif1.f = [1.0, 1.0, 1.0] // uniform にアクセスできる
  * program.use()
  *
  * // ここで描画処理
  *
- * util.destruct(program) // いらなくなったら解放する
+ * destruct(program) // いらなくなったら解放する
  */
 export class glProgram
 {
   /**
-   * @param gl
-   * @param {string} vsrc
-   * @param {string} fsrc
-   * @param {Array} [attrs=[]]
-   * @param {Array} [unifs=[]]
+   * @param {WebGLRenderingContext} gl
+   * @param {string} vsrc - vertex shader プログラム
+   * @param {string} fsrc - fragment shader プログラム
+   * @param {Array} [attrs=[]] - attribute 名のリスト<br> 自動で検出するため通常は渡す必要はない。
+   * @param {Array} [unifs=[]] - uniform 名のリスト<br> 自動で検出するため通常は渡す必要はない。
    */
   constructor(gl, vsrc, fsrc, attrs = [], unifs = []) {
     this.gl = gl;
@@ -434,72 +483,79 @@ export class glProgram
 }
 
 /** 
- * WebGLBuffer のラッパークラス
- * 
- * bind(), unbind(), data(), subData() を行える
+ * GPU との配列データのやり取りに使われる WebGLBuffer のラッパークラス<br>
+ * bind(), unbind(), data(), subData() を行える<br>
+ * GC 時に自動的にリソースを解放する（基本的には destructor() を呼んで手動で解放する方が良い）
  */
 export class glBuffer 
 {
   /**
-   * @param gl
-   * @param type - gl.ARRAY_BUFFER または gl.ELEMENT_ARRAY_BUFFER
+   * @param {WebGLRenderingContext} gl
+   * @param {GLenum} type - gl.ARRAY_BUFFER または gl.ELEMENT_ARRAY_BUFFER<br>
+   *                        gl.bindBuffer に渡される
    */
   constructor(gl, type) {
     this.gl = gl;
     this.type = type;
     this.buffer = gl.createBuffer();
 
-    util.finalizer.register(this, [gl.deleteBuffer, this.buffer], this)
+    finalizer.register(this, [gl.deleteBuffer, this.buffer], this)
   }
 
-  /** */
-  destructor() {  // 手動で呼ぶ必要がある
-    util.finalizer.unregister(this);
+  /** 
+   * リソースを解放する<br>
+   * 呼ばなくても GC 時に自動的に開放するはずだが、いらなくなったら手動で呼ぶべき
+   */
+  destructor() {
+    finalizer.unregister(this);
     this.gl.deleteBuffer(this.buffer);
   }
 
   /** 
-   * @param [func] - func が渡されれば bind して func に args を与えてを呼んで unbind する
+   * コンストラクタに渡した gl.ARRAY_BUFFER または gl.ELEMENT_ARRAY_BUFFER を使って bindBuffer する
+   * @param {function(...any): any?} [func] - func が渡されれば bind して func に args を与えてを呼んだ後 unbind する<br>
    * 渡されなければ bind するだけなので後で必要に応じて別途 unbind すること
-   * @param [...args]
+   * @param {...any} [args] - func へ与える引数
   */
   bind(func, ...args) {
     if (func && typeof func === 'function') {
       this.bind();
-      try { func(...args); } finally { this.unbind(); }
+      try { func(...args) } finally { this.unbind(); }
     } else {
       this.gl.bindBuffer(this.type, this.buffer);
     }
   }
   
-  /** */
+  /** 
+   * 
+   */
   unbind() {
     this.gl.bindBuffer(this.type, null);
   }
   
   /**
-   * データを割り当てる
-   * 
-   * dataLength に割り当てたデータの数が入る
-   * @param float32Array
-   * @param mode - gl.STATIC_DRAW や gl.DYNAMIC_DRAW
+   * バッファーにデータを割り当てる<br>
+   * this.dataLength に割り当てたデータの数が入る
+   * @param {TypedArray} array - バッファーに転送するデータ
+   * @param {GLenum} mode - gl.STATIC_DRAW や gl.DYNAMIC_DRAW
    */
-  data(float32Array, mode) {
+  data(array, mode) {
     this.bind(()=>{
-      this.gl.bufferData(this.type, float32Array, mode);
+      this.gl.bufferData(this.type, array, mode);
     });
-    this.dataLength = float32Array.length;
+
+    /**
+     * subData() 時に参照するため data() で割り当てたデータの要素数が入る<br>
+     * @type {number?}
+     */
+    this.dataLength = array.length;
   }
 
   /**
-   * data で書き込まれたデータの数が入る
-   */
-  dataLength= undefined;
-  
-  /**
-   * データを書き換える
-   * @param offset
-   * @param [float32Array]
+   * バッファーのデータを書き換える
+   * @param {number} offset - オフセット位置
+   * @param {TypedArray} [array] - 置き換えるデータ<br>
+   *    省略時にはすでに割り当てたデータの途中 (offset位置) から使うよう指定する
    */
   subData(offset, float32Array = null) {
     this.bind(()=>{
@@ -519,10 +575,10 @@ export class glBuffer
 export class glFrameBuffer
 {
   /**
-   * @param gl
-   * @param width
-   * @param height
-   * @param {Boolean} [depth=true] - 深度バッファーを確保するかどうか
+   * @param {WebGLRenderingContext} gl
+   * @param {number} width
+   * @param {number} height
+   * @param {boolean} [depth=true] - 深度バッファーを確保するかどうか
    */
   constructor(gl, width, height, depth = true) {
     this.gl = gl;
@@ -545,22 +601,24 @@ export class glFrameBuffer
     });
 
     if(this.depthBuffer) {
-      util.finalizer.register(this, [
+      finalizer.register(this, [
         [gl.deleteFramebuffer, this.frameBuffer],
         [gl.deleteRenderbuffer, this.depthBuffer],
         [gl.deleteTexture, this.texture],
       ], this)
     } else {
-      util.finalizer.register(this, [
+      finalizer.register(this, [
         [gl.deleteFramebuffer, this.frameBuffer],
         [gl.deleteTexture, this.texture],
       ], this)
     }
   }
 
-  /** */
+  /** 
+   * リソースを解放する
+   */
   destructor() {  // 手動で呼ぶ必要がある
-    util.finalizer.unregister(this);
+    finalizer.unregister(this);
 
     if(this.depthBuffer)
       this.gl.deleteRenderBuffer(this.depthBuffer);
@@ -569,7 +627,10 @@ export class glFrameBuffer
     this.gl.deleteFramebuffer(this.frameBuffer);
   }
 
-  /** */
+  /** 
+   * @param {number} width
+   * @param {number} height
+   */
   resize(width, height) {
     if(this.width == width && this.height == height) return;
     this.width = width;
@@ -605,9 +666,9 @@ export class glFrameBuffer
   }
 
   /** 
-   * @param [func] - func が渡されれば bind して func に args を与えてを呼んで unbind する
+   * @param {function(...any): any?} [func] - func が渡されれば bind して func に args を与えてを呼んで unbind する
    * 渡されなければ bind するだけなので後で必要に応じて別途 unbind すること
-   * @param [...args]
+   * @param {...any} [args]
   */
   bind(func, ...args) {
     if (func && typeof func === 'function') {
@@ -626,13 +687,60 @@ export class glFrameBuffer
   }
 };
 
-// 与えられたテクスチャを 2D で加工して表示するためのシェーダ
+/**
+ * 与えられたテクスチャを 2D で加工して表示するためのシェーダを使うためのユーティリティクラス  
+ */ 
 export class glTextureRenderer
 {
-  // fsrc の u_texture にテクスチャが読み込まれる
+  /**
+   * @param {WebGLRenderingContext} gl
+   * @param {string} fsrc - フラグメントシェーダのソースコード<br>
+   *                        uniform sampler2D u_texture に render に渡されるテクスチャが読み込まれる
+   * @param {function(WebGLRenderingContext, glProgram, any): any} preparation - render 時に呼び出されるコールバック関数
+   * 
+   * @example
+   *  // 輝度を factor 倍するレンダラー
+   *  const frameRendererFactor = new glTextureRenderer(gl, `
+   *      precision mediump float;
+   *      uniform sampler2D u_texture; // ここに render に渡されるテクスチャが読み込まれる
+   *      uniform vec2 u_size;
+   *      uniform float u_factor;
+   *      void main(void){
+   *        vec2 uv = gl_FragCoord.xy / u_size;   // 座標を [0, 1) に直す
+   *        vec4 c = texture2D(u_texture, uv)     // テクスチャの値を読む
+   *        gl_FragColor = u_factor * c;          // factor 倍して返す
+   *      }
+   *    `, (gl, program, arg)=> {
+   *      const {width, height, factor} = arg;
+   *      gl.disable(gl.BLEND);
+   *      program.u_size.f = [width, height];
+   *      program.u_factor.f = factor
+   *  });
+   * 
+   *  // テクスチャ src を factor 倍して canvas へ描画
+   *  frameRendererFactor.render(0, src, {
+   *      width: canvas.width, 
+   *      height: canvas.height, 
+   *      factor: factor
+   *  });
+   * 
+   *  // テクスチャ src を factor 倍してフレームバッファー dest へ描画
+   *  frameRendererFactor.render(0, src, {
+   *      width: canvas.width, 
+   *      height: canvas.height, 
+   *      factor: factor
+   *  }, dest);
+   * 
+   *  // 解放する
+   *  frameRendererFactor.destructor(); 
+   *   
+   */ 
   constructor(gl, fsrc, preparation) {
+
+    /** @type {WebGLRenderingContext} */
     this.gl = gl;
 
+    // 領域全体を覆うための頂点シェーダプログラム
     const vsrc = `
       attribute vec3 a_pos;
       void main() {
@@ -640,21 +748,10 @@ export class glTextureRenderer
       }
     `;
 
-    //   const fsrcOffset = `
-    //   precision mediump float;
-    //   uniform sampler2D u_texture;
-    //   uniform vec2 u_size;
-    //   uniform vec2 u_offset;
-    //   void main(void){
-    //     // ここで uv から gl_FragColor を求める
-    //     vec2 uv = gl_FragCoord.xy / u_size + u_offset;
-    //     uv.x -= floor(uv.x);
-    //     uv.y -= floor(uv.y);
-    //     gl_FragColor = texture2D(u_texture, uv);
-    //   }
-    // `;
-
+    /** @type {WebGLProgram} */
     this.program = new glProgram(gl, vsrc, fsrc);
+
+    /** @type {function} */
     this.preparation = preparation;
     
     // 画面いっぱいを覆う四角形
@@ -665,14 +762,22 @@ export class glTextureRenderer
         gl.STATIC_DRAW);
   }
 
+  /** */
   destructor() {
-    util.destruct(this.program);
-    util.destruct(this.vbuffer);
+    destruct(this.program);
+    destruct(this.vbuffer);
   }
 
+  /**
+   * 描画する
+   * @param {number} n_texture - 使用するテクスチャ番号
+   * @param {WebGLTexture|glFrameBuffer} texture - u_texture として参照するテクスチャあるいは glFrameBuffer
+   * @param {any} preparationArg - preparation に与える引数
+   * @param {glFrameBuffer} [destBuffer = null] - 与えられれば destBuffer が出力先になる。与えなければ canvas が出力先になる。
+   */
   render(n_texture, texture, preparationArg, destBuffer = null) {
     
-    if(texture.constructor.name == "glFrameBuffer")
+    if(texture.constructor.name == glFrameBuffer.name)
       texture= texture.texture; // フレームバッファーからテクスチャを取り出す
 
     const {gl, program, vbuffer} = this;
@@ -707,5 +812,17 @@ export class glTextureRenderer
       if(destBuffer) destBuffer.unbind();
     }
   }
+}
+
+
+export function camelCase(str) {
+  return str.split('-').map((w,i) => 
+    (i === 0) ? w.toLowerCase() 
+              : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  ).join('')
+}
+
+export function kebabCase(str) {
+  return str.split(/(?=[A-Z])/).join('-').toLowerCase()
 }
 

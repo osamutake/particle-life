@@ -138,7 +138,7 @@ function drawImageWithOffset(g, source, screenSize, offsetX, offsetY) {
 }
 
 // temp を Offet と scale を反映して g へ描画
-function transferWithScaleAndOffset(g, temp, scale, offsetX, offsetY) {
+function transferWithScaleAndOffset(g, temp, scale, offsetX, offsetY, darken) {
   const w = g.canvas.width;
   const h = g.canvas.height;
   const s = Math.min(w, h);
@@ -164,8 +164,10 @@ function transferWithScaleAndOffset(g, temp, scale, offsetX, offsetY) {
       g.translate( - s/2 + i * s, - s/2 + j * s );  // 中央を原点にしてスケール
       drawImageWithOffset(g, temp, s, offsetX, offsetY);
       
-      g.setTransform(1, 0, 0, 1, 0, 0);
-      g.fillRect((w-ss)/2 + i * ss, (h-ss)/2 + j * ss, ss, ss);
+      if(darken) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillRect((w-ss)/2 + i * ss, (h-ss)/2 + j * ss, ss, ss);
+      }
     }
   }
 }
@@ -176,6 +178,8 @@ var buffer2;
 /**
  * 粒子を描画する
  * @param {CanvasRenderingContext2D} g - 描画先の canvas コンテクスト
+ * @param {PLParticles} particles
+ * @param {object} options
  * @param {string} canvasMode - 粒子描画モード "scrren" または "source-over".  "screen" の方がきれいだが Firefox では非常に時間がかかる
  * @param {number} radius - 粒子半径のスクリーンサイズ相対値
  * @param {string[]} palette - 粒子種別の描画 fillStyle
@@ -184,8 +188,8 @@ var buffer2;
  * @param {number} offsetX - 中心座標 x
  * @param {number} offsetY - 中心座標 y
   */
-function render(g,
-  particles, canvasMode, radius, palette, tail,
+function render(g, particles, options, 
+  canvasMode, radius, palette, tail, darken,
   scale, offsetX, offsetY,
 ) {
   const w = g.canvas.width;
@@ -209,7 +213,7 @@ function render(g,
   );
 
   // 所定位置に描画する
-  transferWithScaleAndOffset(g, buffer1, scale, offsetX, offsetY)
+  transferWithScaleAndOffset(g, buffer1, scale, offsetX, offsetY, darken)
 }
 
 /**

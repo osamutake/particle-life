@@ -2,6 +2,14 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
+    <link rel="preload" as="fetch" href="particle-life.wasm" />
+    <!-- replace_begin -->
+    <!-- release-build ではこの部分に js と css が直接埋め込まれる -->
+    <link rel="preload" as="script" href="particle-life.js" />
+    <script src="particle-life.js"></script>
+    <link rel="stylesheet" href="particle-life.css" />
+    <!-- replace_end -->
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" lang="ja" content="粒子に命が宿る世界を覗き見るサイトです(?)">
     <meta name="description" lang="en" content="Traverse the worlds where particles come to life.">
@@ -33,28 +41,15 @@
     <meta name="theme-color" content="#ffffff">
 
     <title>Particle Life</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" 
-      integrity="sha256-rTpdO0HXBCNpreAHcu6tB2Ppg515Vo+5GtYSsnNLz+8=" crossorigin="anonymous">
-    <script type="module" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule="" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
-    <!-- https://www.jsdelivr.com/package/npm/validatorjs -->
-    <script src="https://cdn.jsdelivr.net/npm/validatorjs@3.22.1/dist/validator.min.js"></script>
-    <script type="module">
-      import bulmaSlider from 'https://cdn.jsdelivr.net/npm/bulma-slider@2.0.5/+esm'
-      window.bulmaSlider = bulmaSlider;
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible@1.0.4/dist/js/bulma-collapsible.min.js" 
-            integrity="sha256-2S84Q5HOI1TNks7Mt5PO67KrW2BaFvJwcUEsZMdESug=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible@1.0.4/dist/css/bulma-collapsible.min.css" 
-            integrity="sha256-j00LYVBmp8qo6pZtA5HE6VVlI2/B44rHgPMnfaXB9bU=" crossorigin="anonymous">
-    <script src="./particle-life.js"></script>
   </head>
   <body>
     <section class="section">
       <div class="container">
         <h1 class="title is-3">Particle Life</h1>
 
-        <app></app>
+        <app>
+          <div class="loading">Loading ...</div>
+        </app>
 
         <style>
           body {
@@ -76,16 +71,18 @@
               padding: 0.5rem;
             }
           }
+          .loading {
+            height: 800px;
+            max-height: 120vw;
+            max-width: 100vw;
+            width: 600px;
+            padding-top: 150px;
+            text-align: center;
+          }
         </style>
 
-        <hr>
-
-        <strong>Particle Life</strong> by Osamu TAKEUCHI.<br>
-        The source code is available at <a href="https://github.com/osamutake/particle-life">
-              <ion-icon name="logo-github"></ion-icon> GitHub project site</a> under MIT license.<br>
-        Language: [ <a id="locale-en">en</a> | <a id="locale-ja">ja</a> ]
-        
       </div>
     </section>
   </body>
 </html>
+

@@ -1,7 +1,10 @@
-// ****************************************
-/// 相互作用セット
-// ****************************************
+/**
+ * @module interaction-sets
+ */
 
+/**
+ * 相互作用セット
+ */
 export const interactionSets = {
   // デフォルト
   '': (interaction, rand) => interaction.set( (i, j) => (i == j) ? 

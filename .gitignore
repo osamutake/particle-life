@@ -1,6 +1,6 @@
 /emsdk
 /node_modules
-/obj/*.js
+/obj
 *.BAK
 *~
 /test/coverage

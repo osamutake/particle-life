@@ -68,8 +68,11 @@ export default {
     'グロー距離':
     'Glow Dist.', 
 
-    'グロー明るさ':
+    'グロー輝度':
     'Glow Int.', 
+
+    '外を暗く':
+    'Darken Outside',
 
     '粒子種数':
     'N Species',
@@ -181,6 +184,9 @@ export default {
     '録画fps':
     'Recording fps',
 
+    '高画質録画':
+    'HQ recording',
+
     // help-popup.riot
 
     '閉じる':
@@ -214,7 +220,7 @@ export default {
     'then try pressing "Next World" a few times.',
     
     'id_full-screen_help':
-    'You can enjoy full screen view by pressing "Full Screen <span class="icon"><ion-icon name="expand"></ion-icon></span>".<br><br>'+
+    'You can enjoy full screen view by pressing "Full Screen <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrows-fullscreen is-clickable" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/></svg>".<br><br>'+
     'Within the full-screen view, you can move to the next world by double-clicking/taping on peripheral area or pressing "N" key.',
 
     'id_particles-display_help':
@@ -222,15 +228,18 @@ export default {
      You can zoom in/out by mouse drag with Ctrl-key or pinch in/out.`,
 
     'id_copy-url_help':
-    'You can copy URL for the current world by pressing "Share this world <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>".',
+    'You can copy URL for the current world by pressing "Share this world <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-share-fill" viewBox="0 0 16 16"><path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/></svg></a>".',
 
     'id_palette_help':
-    'You can tweak the color palette by pressing <span class="icon"><ion-icon name="color-palette"></ion-icon></span> under "Rendering control".',
+    'You can tweak the color palette by pressing <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-palette-fill" viewBox="0 0 16 16"><path d="M12.433 10.07C14.133 10.585 16 11.15 16 8a8 8 0 1 0-8 8c1.996 0 1.826-1.504 1.649-3.08-.124-1.101-.252-2.237.351-2.92.465-.527 1.42-.237 2.433.07zM8 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4.5 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM5 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm.5 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg> under "Rendering control".',
 
     'id_replay_help':
     'You can replay the world from the begining by pressing '+
-    '<span class="icon"><ion-icon name="play-skip-back"></ion-icon></span>'+
+    '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-skip-backward-fill" viewBox="0 0 16 16"><path d="M.5 3.5A.5.5 0 0 0 0 4v8a.5.5 0 0 0 1 0V8.753l6.267 3.636c.54.313 1.233-.066 1.233-.697v-2.94l6.267 3.636c.54.314 1.233-.065 1.233-.696V4.308c0-.63-.693-1.01-1.233-.696L8.5 7.248v-2.94c0-.63-.692-1.01-1.233-.696L1 7.248V4a.5.5 0 0 0-.5-.5z"/></svg>'+
     ' under "Rendering control".<br><br>So, enjoy!',
+
+    "ショートカットキー： <ul><li>'space' で一時停止</li><li>'N' で次のワールドを生成</li><li>'Ctrl+Enter' で全画面（Firefoxでは動作せず）</li><li>'Alt + R' で録画開始/終了</li></ul>":
+    "Shortcut keys: <ul><li>'space' = pause/unpause<li>'N' = Next World<li>'Ctrl+Enter' = Full screen (not working with Firefox)<li>'Alt + R' = recording start/stop</ul>",
 
   }
 }
