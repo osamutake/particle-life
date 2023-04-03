@@ -14,8 +14,8 @@ export default [
   [`[ワールド設定] でお勧めの設定を選んだら [次のワールドを生成] を何度か押してみてください`,
   "recommendation"
   ],
-  [`[全画面  <span class="icon"><ion-icon name="expand"></ion-icon></span>]
-    を押すとフルスクリーン表示にできます<br><br>
+  [`[全画面  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-arrows-fullscreen is-clickable" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/>
+  </svg>] を押すとフルスクリーン表示にできます<br><br>
     フルスクリーン表示中は範囲外のダブルクリック/タップあるいは N キーで次のワールドへ移れます`,
   "full-screen"
   ],
@@ -23,16 +23,20 @@ export default [
     Ctrl を押しながらのドラッグあるいはピンチで拡大・縮小できます。`,
   "particles-display"
   ],
-  ['[このワールドをシェア&nbsp; <span class="icon"><ion-icon name="share-social"></ion-icon></span></a>] で今いるワールドへのリンクをクリップボードへコピーできます',
+  [`[このワールドをシェア&nbsp; <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-share-fill" viewBox="0 0 16 16">
+  <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
+  </svg>] で今いるワールドへのリンクをクリップボードへコピーできます`,
   "copy-url"
   ],
   [`[描画制御] の 
-    <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span> 
+  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-palette-fill" viewBox="0 0 16 16"><path d="M12.433 10.07C14.133 10.585 16 11.15 16 8a8 8 0 1 0-8 8c1.996 0 1.826-1.504 1.649-3.08-.124-1.101-.252-2.237.351-2.92.465-.527 1.42-.237 2.433.07zM8 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4.5 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM5 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm.5 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg> 
     で現れるカラースケールを上下左右にいじると配色を変えられます`,
   "palette"
   ],
   [`[描画制御] の 
-    <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span> 
+  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-skip-backward-fill" viewBox="0 0 16 16">
+  <path d="M.5 3.5A.5.5 0 0 0 0 4v8a.5.5 0 0 0 1 0V8.753l6.267 3.636c.54.313 1.233-.066 1.233-.697v-2.94l6.267 3.636c.54.314 1.233-.065 1.233-.696V4.308c0-.63-.693-1.01-1.233-.696L8.5 7.248v-2.94c0-.63-.692-1.01-1.233-.696L1 7.248V4a.5.5 0 0 0-.5-.5z"/>
+  </svg> 
     で現在のワールドをはじめからリプレイできます<br>
     <br>
     それではどうぞのんびりお楽しみください`,

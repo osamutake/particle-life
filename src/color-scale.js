@@ -1,21 +1,22 @@
-/*****************************************
-/// カラースケール
-
-  [0, 1) の範囲の数値を色に変換するスケールを定義する
-
-  let scale = new ColorScale([
-      [0, 0, 0, 0], // 0 を rgb(0, 0, 0) に
-      [0, 0, 0, 0], // 1 を rgb(255, 255, 255) に
-  ]);               // その間を線形補間するスケールを作成
-  
-  let color = scale.color(x); // 数値を色に変換
-  
-  g.fillStyle = color;        // そのまま style に代入可能
-  
-*****************************************/
-
+/**
+ * カラースケール<br>
+ * [0, 1) の範囲の数値を色に変換するスケールを定義する
+ * 
+ * @example
+ * let scale = new ColorScale([
+ *     [0,   0,   0,   0],     // 0 を rgb(0, 0, 0) に
+ *     [1, 255, 255, 255],     // 1 を rgb(255, 255, 255) に
+ * ]);                         // その間を線形補間するスケールを作成
+ * 
+ * let color = scale.color(x); // 数値を色に変換
+ * 
+ * g.fillStyle = color;        // そのまま style に代入可能
+ */
 export class ColorScale {
 
+  /**
+   * @param {number[][]} [mapping] - 与えなければグレースケールになる
+   */
   constructor(mapping) {
     mapping ||= [ // grayscale
       [0,   0,   0,   0],
@@ -24,12 +25,26 @@ export class ColorScale {
     this.mapping = mapping;
   }
 
+  /**
+   * "#000000" 形式の文字列に直す
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   */
   static rgb2str(r, g, b) {
     [r, g, b] = [r, g, b].map(x => Math.round(x));
     const hex = (x) => ("0"+x.toString(16)).slice(-2);
-    return "#"+hex(r)+hex(g)+hex(b);
+    return "#" + hex(r) + hex(g) + hex(b);
   }
 
+  /**
+   * hsl を rgb に直して [r,g,b] の形で返す<br>
+   * hsl は [0, 1)、rgb は [0, 255]
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   * @returns {number[]}
+   */
   static hsl2rgb(h, s, l) {
     const c = (1- Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h * 6) % 2 - 1));
@@ -67,6 +82,10 @@ export class ColorScale {
     return [(r+m) * 255, (g+m) * 255, (b+m) * 255];
   }
 
+  /**
+   * [0, 1) の数値 x を "#000000" 形式のカラーに直す
+   * @param {number} x
+   */
   color(x) {
     const {mapping} = this;
     x = Math.max(0, Math.min(1, x));
@@ -89,6 +108,10 @@ export class ColorScale {
 /// カラースケール定義
 // ****************************************
 
+/**
+ * 事前定義のカラースケールリスト
+ * @type {ColorScale[]}
+ */
 export const colorScaleList = [
   new ColorScale([  // rainbow
     [0/6, ...ColorScale.hsl2rgb(0/6, 1, 0.5)],

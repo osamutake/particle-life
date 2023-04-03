@@ -3,6 +3,7 @@
  */
 
 import {ParticlesRendererGL} from "./particles-display-gl-particles.js"
+import {glFrameBuffer, glTextureRenderer, destruct} from '../util.js'
 
 // モジュールグローバル
 
@@ -22,7 +23,7 @@ let frameBuffer1,
  * モジュールグローバルに確保したバッファー等を削除する
  */  
 function clearBuffers() {
-  util.destruct(
+  destruct(
     frameRendererGL,
     frameRendererTail,
     frameRendererGlow1,
@@ -34,7 +35,7 @@ function clearBuffers() {
     frameBuffer3B,
   );
   if(frameRendererGlow2) {
-    util.destruct(
+    destruct(
       ...frameRendererGlow2
     );
   }
@@ -55,14 +56,14 @@ function initializeRenderers(gl) {
   frameRendererGL = new ParticlesRendererGL(gl);
 
   const size = Math.min(gl.drawingBufferWidth, gl.drawingBufferHeight);
-  frameBuffer1  = new util.glFrameBuffer(gl, 2 * size, 2 * size, false);
-  frameBuffer2A = new util.glFrameBuffer(gl, 2 * size, 2 * size, false);
-  frameBuffer2B = new util.glFrameBuffer(gl, 2 * size, 2 * size, false);
-  frameBuffer3A = new util.glFrameBuffer(gl, 128, 128, false);
-  frameBuffer3B = new util.glFrameBuffer(gl, 128, 128, false);
+  frameBuffer1  = new glFrameBuffer(gl, 2 * size, 2 * size, false);
+  frameBuffer2A = new glFrameBuffer(gl, 2 * size, 2 * size, false);
+  frameBuffer2B = new glFrameBuffer(gl, 2 * size, 2 * size, false);
+  frameBuffer3A = new glFrameBuffer(gl, 128, 128, false);
+  frameBuffer3B = new glFrameBuffer(gl, 128, 128, false);
 
   // 前回の描画結果 u_texture2 に今回の内容 u_texture を書き加えたものを描画する
-  frameRendererTail = new util.glTextureRenderer(gl, `
+  frameRendererTail = new glTextureRenderer(gl, `
       precision mediump float;
       uniform sampler2D u_texture;    // frameBuffer1
       uniform float u_tail;
@@ -102,7 +103,7 @@ function initializeRenderers(gl) {
 
   // 与えられた画像を縮小する
   // n = 21 倍のオーバーサンプリングを行う
-  frameRendererGlow1 = new util.glTextureRenderer(gl, `
+  frameRendererGlow1 = new glTextureRenderer(gl, `
       precision mediump float;
       uniform sampler2D u_texture;
       uniform float u_size_r;
@@ -144,7 +145,7 @@ function initializeRenderers(gl) {
       gl_FragColor = c * u_glowi;
     }
   `;
-  frameRendererGlow2 = [7, 11, 15, 21].map( n => new util.glTextureRenderer(gl, fsrcGlow2(n), 
+  frameRendererGlow2 = [7, 11, 15, 21].map( n => new glTextureRenderer(gl, fsrcGlow2(n), 
     (gl, program, args)=> {
       const {screenSize, glowr, glowi} = args;
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -164,7 +165,7 @@ function initializeRenderers(gl) {
     }) 
   );
 
-  frameRendererOffset = new util.glTextureRenderer(gl, `
+  frameRendererOffset = new glTextureRenderer(gl, `
       precision mediump float;
       uniform sampler2D u_texture;
       uniform sampler2D u_texture2;
@@ -172,6 +173,7 @@ function initializeRenderers(gl) {
       uniform float u_scale;
       uniform vec2 u_offset;
       uniform bool u_glow;
+      uniform bool u_darken;
       void main(void){
         // ここで uv から gl_FragColor を求める
         float size = min(u_size.x, u_size.y);       // 正方形の一辺
@@ -186,18 +188,21 @@ function initializeRenderers(gl) {
           gl_FragColor += texture2D(u_texture2, uv);
         }
 
-        // 範囲チェック
-        vec2 test = ((gl_FragCoord.xy - of) / size - 0.5) / u_scale + 0.5;
-        if( test.x < 0.0 || test.y < 0.0 || test.x > 1.0 || test.y > 1.0 ) 
-          gl_FragColor.rgb /= 2.0;  // 範囲外なら暗くする
+        if(u_darken) {
+          // 範囲チェック
+          vec2 test = ((gl_FragCoord.xy - of) / size - 0.5) / u_scale + 0.5;
+          if( test.x < 0.0 || test.y < 0.0 || test.x > 1.0 || test.y > 1.0 ) 
+            gl_FragColor.rgb /= 2.0;  // 範囲外なら暗くする
+        }
       }
     `, (gl, program, args)=> {
-      const {scale, offsetX, offsetY, glow, glowSrc} = args;
+      const {scale, offsetX, offsetY, glow, glowSrc, darken} = args;
       gl.disable(gl.BLEND);
       program.u_size.f = [gl.drawingBufferWidth, gl.drawingBufferHeight];
       program.u_offset.f = [offsetX, offsetY];
       program.u_scale.f = scale;
       program.u_glow.i = glow;
+      program.u_darken.i = darken ? 1 : 0;
       program.u_texture2.i = 4;
       gl.activeTexture(gl.TEXTURE4);
       gl.bindTexture(gl.TEXTURE_2D, glowSrc.texture);
@@ -216,8 +221,9 @@ let counter;
  * 
  * @param {WebGLRenderingContext} gl - 描画先
  * @param {PLParticles} particles - 粒子の位置情報
+ * @param {object} options
  * @param {number} particleSize - 粒子サイズ　ピクセル単位
- * @param {number[][3]} palette - 粒子種別の色
+ * @param {number[][]} palette - 粒子種別の色
  * @param {number} pshape - 粒子形状
  * @param {number} highlight - ハイライトサイズ
  * @param {number} glowr - グロー半径（world.scale 調整済み）
@@ -227,8 +233,8 @@ let counter;
  * @param {number} offsetX - スクロール座標 x
  * @param {number} offsetY - スクロール座標 y
  */  
-function render(gl, particles, particleSize, 
-   palette, pshape, highlight, glowr, glowi, tail, 
+function render(gl, particles, options, particleSize, 
+   palette, pshape, highlight, glowr, glowi, tail, darken,
    scale, offsetX, offsetY) {
 
   const size = Math.min(gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -237,7 +243,7 @@ function render(gl, particles, particleSize,
   if(!frameRendererGL) {
     initializeRenderers(gl)
     _tail = 0;
-    counter = 1;
+    counter = 0;
   }
 
   // 拡大できるよう常に2倍で描画する
@@ -247,9 +253,11 @@ function render(gl, particles, particleSize,
     frameBuffer2A.resize(2 * size, 2 * size)
     frameBuffer2B.resize(2 * size, 2 * size)
     _tail = 0;
-    counter = 1;
+    counter = 0;
   }
 
+  if(options.playing) counter++;
+  
   // frameBuffer1 へ描画
   frameRendererGL.render(
     particles, palette, pshape, highlight, 2 * size, 2 * particleSize,
@@ -295,9 +303,9 @@ function render(gl, particles, particleSize,
     scale: scale,
     glow: glowr * glowi,
     glowSrc: frameBuffer3B,
+    darken: darken,
   });
 
-  counter += 1;
 }
 
 /**

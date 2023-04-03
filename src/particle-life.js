@@ -11,6 +11,8 @@
 
 import { PLInteractionMatrix } from './pl-interaction-matrix.js'
 import { PLParticles } from './pl-particles.js'
+import { importOptions, destruct } from './util.js'
+import { wasm } from './pl-wasm-loader'
 
 /**
  * Particle Life 計算の全体設定を保持します
@@ -34,7 +36,7 @@ export class ParticleLife {
 
     // 指定されていないパラメータは現状通り
     // 初回は規定値をあてはめる
-    const defaultParams = util.importOptions({}, this, {
+    const defaultParams = importOptions({}, this, {
       nspecies: 6,
       nlattice: 30,
       rth1: 0.05,
@@ -50,9 +52,12 @@ export class ParticleLife {
       glowr: 4,
       glowi: 0.8,
     })
-    util.importOptions(this, options, defaultParams)
+    importOptions(this, options, defaultParams)
 
+    /** @type {XorShift128} */
     this.rand = rand;
+
+    /** @type {number} */
     this.nparticles = this.nlattice * this.nlattice;
 
     if(!this.interaction) {
@@ -100,13 +105,13 @@ export class ParticleLife {
    * util.destruct 経由で呼び出すと null の確認が必要なくて便利
    * 
    *  @example
-   *  util.destruct(world)
+   *  destruct(world)
    */
   destructor() {
     this.mem.free;
-    util.destruct(this.rand);
-    util.destruct(this.interaction);
-    util.destruct(this.particles);
+    destruct(this.rand);
+    destruct(this.interaction);
+    destruct(this.particles);
   }
 
   /**

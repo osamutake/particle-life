@@ -46,28 +46,42 @@ p<!-----------------------------------------------------------------
           <p class="control">
             <button class="button" onclick={ ()=> dispatchEvent("restart", {randomize: false}) } 
               id="replay" title={i18n.t("始めに戻ってリプレイ")}>
-              <span class="icon is-small"><ion-icon name="play-skip-back"></ion-icon></span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-skip-backward-fill" viewBox="0 0 16 16">
+              <path d="M.5 3.5A.5.5 0 0 0 0 4v8a.5.5 0 0 0 1 0V8.753l6.267 3.636c.54.313 1.233-.066 1.233-.697v-2.94l6.267 3.636c.54.314 1.233-.065 1.233-.696V4.308c0-.63-.693-1.01-1.233-.696L8.5 7.248v-2.94c0-.63-.692-1.01-1.233-.696L1 7.248V4a.5.5 0 0 0-.5-.5z"/>
+              </svg>
             </button>
           </p>
           <p class="control">
             <button id="pause" class={ state.pause ? "button is-danger" : "button" }
                     onclick={ ()=> { update({pause: !state.pause }); dispatchEvent("pause", state); } } 
                     title={ i18n.t("ポーズ／再開") }>
-              <span class="icon is-small"><ion-icon name={ state.pause ? "play" : "pause" }></ion-icon></span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16" if={!state.pause}>
+                <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16" if={state.pause}>
+                <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+              </svg>              
             </button>
           </p>
           <p class="control">
             <button id="recording" class={ state.recording ? "button is-danger" : "button" } 
                     onclick={ ()=>{ update({recording: !state.recording }); dispatchEvent("record", state); } } 
                     title={ i18n.t("webm に録画") }>
-              <span class="icon is-small"><ion-icon name={ state.recording ? "stop" : "ellipse" }></ion-icon></span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-record-fill" viewBox="0 0 16 16" if={!state.recording}>
+                <path fill-rule="evenodd" d="M8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10z"/>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-stop-fill" viewBox="0 0 16 16" if={state.recording}>
+                <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+              </svg>
             </button>
           </p>
           <p class="control">
             <button id="palette" class={ state.showPalette ? "button is-dark" : "button" } 
                     onclick={ ()=>{ update({showPalette: !state.showPalette }) } } 
                     title={ i18n.t("カラーパレット編集") }>
-              <span class="icon is-small"><ion-icon name="color-palette"></ion-icon></span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-palette-fill" viewBox="0 0 16 16">
+                <path d="M12.433 10.07C14.133 10.585 16 11.15 16 8a8 8 0 1 0-8 8c1.996 0 1.826-1.504 1.649-3.08-.124-1.101-.252-2.237.351-2.92.465-.527 1.42-.237 2.433.07zM8 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4.5 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM5 6.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm.5 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+              </svg>
             </button>
           </p>
         </div>
@@ -80,7 +94,10 @@ p<!-----------------------------------------------------------------
       </div>
       <div class="column is-narrow field">
         <label for="screen" class="label" style="position:relative;"><i18n>画面</i18n> &nbsp; 
-          <span class="icon is-clickable" style="position:absolute;top:-4px;" onclick={ ()=> update({screen: "F"}) }><ion-icon name="expand"></ion-icon></span></label>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-arrows-fullscreen is-clickable" viewBox="0 0 16 16" onclick={ ()=> update({screen: "F"}) }>
+          <path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/>
+          </svg>
+        </label>
         <div class="select">
           <select id="screen" value={state.screen} onchange={ editorChanged }>
             <option value="XS">XS</option>
@@ -95,7 +112,9 @@ p<!-----------------------------------------------------------------
         <label class="label"><i18n>使い方</i18n></label>
         <div class="control">
           <button class="button is-info" onclick={props.onHelp}>
-            <span class="icon is-small"><ion-icon name="help"></ion-icon></span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-lg" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M4.475 5.458c-.284 0-.514-.237-.47-.517C4.28 3.24 5.576 2 7.825 2c2.25 0 3.767 1.36 3.767 3.215 0 1.344-.665 2.288-1.79 2.973-1.1.659-1.414 1.118-1.414 2.01v.03a.5.5 0 0 1-.5.5h-.77a.5.5 0 0 1-.5-.495l-.003-.2c-.043-1.221.477-2.001 1.645-2.712 1.03-.632 1.397-1.135 1.397-2.028 0-.979-.758-1.698-1.926-1.698-1.009 0-1.71.529-1.938 1.402-.066.254-.278.461-.54.461h-.777ZM7.496 14c.622 0 1.095-.474 1.095-1.09 0-.618-.473-1.092-1.095-1.092-.606 0-1.087.474-1.087 1.091S6.89 14 7.496 14Z"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -126,9 +145,15 @@ p<!-----------------------------------------------------------------
         </div>
       </div>
       <div class="column is-narrow field">
-        <label for="glowi" class="label"><i18n>グロー明るさ</i18n></label>
+        <label for="glowi" class="label"><i18n>グロー輝度</i18n></label>
         <div class="control">
           <input class="input" id="glowi" inputmode="decimal" value={state.glowi} size="2" onchange={ editorChanged }/>
+        </div>
+      </div>
+      <div class="column is-narrow field">
+        <label for="darken" class="label"><i18n>外を暗く</i18n></label>
+        <div class="control">
+          <input id="darken" type="checkbox" checked={state.darken != 0} onchange={ editorChanged } /> 
         </div>
       </div>
     </div>
@@ -191,7 +216,10 @@ p<!-----------------------------------------------------------------
             </div>
             <div class="control">
               <a class="button is-info" onclick={ ()=> update({ interact_seed: 2**53 * Math.random() }) }>
-                <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-counterclockwise" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                  <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                </svg>
               </a>
             </div>
           </div>
@@ -204,7 +232,10 @@ p<!-----------------------------------------------------------------
             </div>
             <div class="control">
               <a class="button is-info" onclick={ ()=> update({ world_seed: 2**53 * Math.random() }) }>
-                <span class="icon is-small"><ion-icon name="refresh"></ion-icon></span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-counterclockwise" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                  <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                </svg>
               </a>
             </div>
           </div>
@@ -217,8 +248,9 @@ p<!-----------------------------------------------------------------
   </section>
 
   <style type="scss">
-    span.icon {
-      margin: 0px -2px !important;
+    button svg.bi {
+      width: 19px;
+      height: 19px;
     }
 
     .columns {
@@ -241,6 +273,33 @@ p<!-----------------------------------------------------------------
   </style>
 
   <script>
+    /**
+    * 設定用のコントロールを表示する<br>
+    * @module riot/pl-controls
+    * @example
+    * <!--
+    *   plControlIntf = {
+    *     update: null,                     // this.update が設定される
+    *     getSearchString: null,            // this.getSearchString が設定される
+    *     recommendations: recommendations, // お勧めリストデータ
+    *   }
+    * -->
+    * <pl-controls
+    *   intf={plControlIntf}
+    *   on-show-editor={(e)=> some(e) }
+    *   on-record={onRecordClick} 
+    *   on-restart={onRestartFromControls}
+    *   on-pause={onPauseClick}
+    *   on-update={onControlsUpdate}
+    *   on-help={()=> helpPopupIntf.show()}
+    * >
+    * </pl-controls>
+    */
+
+    import Validator from 'validatorjs'
+    import {sleep} from '../util.js'
+    import {i18n} from '../i18n.js'
+
     export default {
       async onBeforeMount(props, state) {
         this.i18n = i18n;
@@ -262,10 +321,11 @@ p<!-----------------------------------------------------------------
           pshape: 1,
           highlight: 1,
           glowr: 4,
-          glowi: 0.8,
+          glowi: 0.8
         }
 
         Object.assign(state, props.intf.default_state);
+        state.darken = true;
 
         this.recommendations.push(...props.intf.recommendations);
 
@@ -304,11 +364,11 @@ p<!-----------------------------------------------------------------
         };
         for(let i = 0; i < 5; i++) {
           control.style.backgroundColor = color;
-          await util.sleep(400);
+          await sleep(400);
           if(cancelRequested) break;
 
           control.style.backgroundColor = original;
-          await util.sleep(400);
+          await sleep(400);
           if(cancelRequested) break;
         }
       },
@@ -334,6 +394,9 @@ p<!-----------------------------------------------------------------
             scale: value,
             step: Math.round(this.state.step * this.state.scale / value * 1000)/1000
           });
+        } else 
+        if(e.target.type == "checkbox") {
+          this.update({[id]: e.target.checked});
         } else {
           this.update({[id]: value});
         }
@@ -357,6 +420,7 @@ p<!-----------------------------------------------------------------
           highlight: ['required', 'numeric', 'between:0,50'],
           glowr: ['required', 'numeric', `between:0,${8 * state.scale}`],
           glowi: ['required', 'numeric', 'between:0,10'],
+          darken: ['required', 'boolean'],
         };
 
         state.validation = new Validator(state, rule);
@@ -394,6 +458,10 @@ p<!-----------------------------------------------------------------
         this.lastState = {...state};
       },
 
+      /**
+       * @param {string} currentSetting
+       * @param {boolean} [randomizeSeeds=false]
+       */
       getSearchString(currentSetting, randomizeSeeds = false) {
         // ワールド設定を読み取る
         let search = this.$('#recommendation').value;
@@ -405,13 +473,13 @@ p<!-----------------------------------------------------------------
         if(!search) {
           // 先頭の ? を外して & で分け、key = value について処理する
           let searchList = location.search.slice(1).split('&');
-          search = '?' + searchList.filter((s)=> {
+          search = '?' + (searchList.filter((s)=> {
             const [k, v] = s.split('=');
             if(k == "world-editor") {
               this.dispatchEvent('show-editor');
             }
             return !v;
-          })[0];  // 残りがパラメータのはず
+          })[0] || "");  // 残りがパラメータのはず
         }
 
         // URL で指定されてなければお勧め設定

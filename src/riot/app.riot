@@ -3,7 +3,7 @@
     <p><i18n>粒子に命が宿る世界をのんびり眺めるサイトです。</i18n><br class="weak" />
       <i18n>飽きたら「次のワールドを生成」を押して下さい。</i18n></p>
 
-    <div id="fps"><!-- 更新頻度が高いので riot を使わず生で書き換える --></div>
+    <div id="fps">&nbsp;<!-- 更新頻度が高いので riot を使わず生で書き換える --></div>
     <div class="columns is-desktop">
       <div class="column is-narrow" style="line-height:1;position:relative;">
         
@@ -21,7 +21,9 @@
           </a>
           <a class="button is-info is-small" id="copy-url" onclick={onCopyUrlClick}>
               <i18n>このワールドをシェア</i18n>&nbsp;&nbsp;&nbsp;
-              <span class="icon"><ion-icon name="share-social"></ion-icon></span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-share-fill" viewBox="0 0 16 16">
+              <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
+              </svg>
           </a>
           <div class="block" id="copy-url-message">
             <span class="tag is-success">
@@ -29,8 +31,11 @@
             </span>
           </div>
           <a class="button is-info is-small" id="full-screen" onclick={onFullScreenClick}>
-              <i18n>全画面</i18n> &nbsp; 
-              <span class="icon"><ion-icon name="expand"></ion-icon></span></a>
+              <i18n>全画面</i18n> &nbsp; &nbsp; 
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-arrows-fullscreen is-clickable" viewBox="0 0 16 16" onclick={ ()=> update({screen: "F"}) }>
+              <path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/>
+              </svg>
+          </a>
           <div class="block" id="full-screen-message">
             <span class="tag is-success">
               <i18n>画面外のダブルタップで次のワールドを生成できます</i18n>
@@ -68,10 +73,21 @@
         <help-popup intf={helpPopupIntf}>
           <ul>
             <li each={message in messages}><raw html={message}></raw></li>
+            <li><i18n>ショートカットキー： <ul><li>'space' で一時停止<li>'N' で次のワールドを生成<li>'Ctrl+Enter' で全画面（Firefoxでは動作せず）<li>'Alt + R' で録画開始/終了</ul></i18n></li>
           </ul>
         </help-popup>
     </div>
   <section>
+
+  <hr>
+
+  <strong>Particle Life</strong>, {version} by Osamu TAKEUCHI.<br>
+  The source code is available at <a href="https://github.com/osamutake/particle-life">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+    </svg> GitHub project site</a> under MIT license.<br>
+  Language: [ <a id="locale-en" onclick={()=> i18n.setLocale('en')}>en</a> | <a id="locale-ja" onclick={()=> i18n.setLocale('ja')}>ja</a> ]
+  
 
   <style type="scss">
     #fps {
@@ -138,20 +154,30 @@
   <script>
     /**
     * @module riot/app
+    * @example
+    * <app>
+    *   <div class="loading">Loading ...</div>
+    * </app>
     */
 
+    import { version as appVersion } from '../../package.json'
     import { CanvasRenderer } from '../canvas-renderer.js'
     import { interactionSets } from '../interaction-sets.js'
     import { ColorScale, colorScaleList } from "../color-scale.js"
     import { ParticleLife } from '../particle-life.js'
     import { XorShift128 } from '../xorshift128.js'
+    import { PLSpeciesDistribution } from '../pl-species-distribution.js'
+    import { i18n } from '../i18n.js'
     
     export default {
       onBeforeMount(props, state) {
+
         // コンポーネントを構成する
 
         this.world = null;
         this.colorFunc = null;
+        this.version = appVersion;
+        this.i18n = i18n;
 
         this.displayIntf = {
           world: () => this.world,
@@ -202,7 +228,7 @@
           this.render,                                // render func
           (blob)=> this.update({
                 videoBlob: blob, 
-                videoName: this.getWorldURL().split('?') // ファイル名
+                videoName: this.getWorldURL().split('?')[1] // ファイル名
               })
         );
         this.renderer.maxFps = 61;
@@ -226,6 +252,11 @@
           event.stopPropagation();
           this.$("#pause").click();
         } else
+        if((e.key == 'R' || e.key == 'r') && e.altKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.$("#recording").click();
+        } else
         if(e.key == 'Enter' && e.altKey) {
           event.preventDefault();
           event.stopPropagation();
@@ -243,9 +274,9 @@
           difference = difference.filter(k => k != "perturb");
           delete options.perturb; // エディタが world に直接書くので指定は無視する
         }
-        if(difference.some(k=> ["tail", "screen", "particleSize"].includes(k))) {
-          const {tail, screen, particleSize} = options;
-          this.displayIntf.update({tail, screen, particleSize});
+        if(difference.some(k=> ["tail", "screen", "particleSize", "darken", ].includes(k))) {
+          const {tail, screen, particleSize, darken} = options;
+          this.displayIntf.update({tail, screen, particleSize, darken});
         }
         this.$('color-scale-editor').style.display = 
             options.showPalette ? 'block' : 'none';
@@ -253,7 +284,7 @@
         // 取っておく
         this.state.controlsSetting = options;
 
-        const keysNotWorldSetting = [ 'pause', 'recording', 'showPalette', 'tail', 
+        const keysNotWorldSetting = [ 'pause', 'recording', 'showPalette', 'tail', 'darken',
                                    'screen', 'particleSize', 'full-screen'];
         const keysRequireRestert = [ "nspecies", "nlattice", "scale", "intset", 
                                      "step", "world_seed", "interact_seed"]
@@ -263,6 +294,9 @@
           } else {
             if(this.world) this.world.update(options);
           }
+        }
+        if(difference.some(k=> ["pshape", "highlight", "glowr", "glowi" ].includes(k))) {
+          this.displayIntf.render();
         }
 
         if(difference.includes('full-screen'))
@@ -293,7 +327,7 @@
         this.world.interactParticles();
         this.world.repelParticles(this.displayIntf.repelX, this.displayIntf.repelY);
         this.world.moveParticles();
-        this.displayIntf.render();
+        this.displayIntf.render({playing: true});
         this.displayFps(this.renderer);
       },
 

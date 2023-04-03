@@ -1,6 +1,6 @@
 /****************************************
 
-粒子の配列 + ワーキングメモリ を管理
+// 粒子の配列
 
 struct {
     int32_t species, dummy;
@@ -8,33 +8,51 @@ struct {
     int32_t vx, vy;
 } particles[n];       // int32_t * 6  * nparticles
 
+
+// グリッド構造を保持するためのワーキングメモリ
+
 typedef struct {
-    particle_t *p;
+    particle_t *p;    // 32bit
     int16_t x;
     int16_t row;
-} index[n];
+} index_t;
 
-index_t grid[nrow * ncol]
+index_t grid[nrow * ncol + 1] // + 1 に注意
 
 ****************************************/
 
+import { wasm } from './pl-wasm-loader'
+
+/**
+ * 粒子の配列 + ワーキングメモリ を管理する
+ */
 export class PLParticles {
 
+  /**
+   * @param {number} nparticles - 粒子数
+   */
   constructor(nparticles) {
     this.update(nparticles);
   }
   
+  /**
+   * 粒子数を変更する
+   * @param {number} nparticles - 粒子数
+   */
   update(nparticles) { 
     this.n = Math.floor(nparticles);
     
-    // particles : 6 x n が粒子自身
-    // index : 2 x n がソート用のワーキングメモリ
+    // 32bit を単位として
+    //   6 x n       が粒子自身
+    //   2 x (n + 1) がソート用のワーキングメモリ  TODO: これ変な計算だ
     let len = (6 + 2) * nparticles + 2;
-    if(!this.mem) {
+
+    // 後で広げる可能性を考えて必要量の４倍取っておく
+    if(!this.mem) {             // 初回
       this.mem  = wasm.i32.alloc(len * 4);
       this.memVertices = new Int16Array(5 * nparticles * 4 * 4);
     } else 
-    if(this.mem.length < len) {
+    if(this.mem.length < len) { // 大きくしなければならないときのみ更新
       let size = Math.max(this.mem.length * 4, len);
       this.mem.free;
       this.mem = wasm.i32.alloc(size);
@@ -42,11 +60,14 @@ export class PLParticles {
     }
   }
 
+  /** */
   destructor() {
     this.mem.free;
   }
 
-  // x, y は [-0.5, 0.5) の範囲
+  /**
+   * 値を設定する<br>x, y は [-0.5, 0.5) の範囲
+   */
   set(i, species, x, y, vx, vy) {
     if(i < 0 || this.n <= i) return;  // 範囲外
     
@@ -57,8 +78,11 @@ export class PLParticles {
     this.mem[6 * i + 5] = vy * 2**32;
   }
 
-  // x, y は [-0.5, 0.5) の範囲
-  // returns [species, x, y, vx, vy]
+  /**
+   * 値を取得する<br>
+   * returns [species, x, y, vx, vy]<br>
+   * x, y は [-0.5, 0.5) の範囲
+   */
   get(i) {
     if(i < 0 || this.n <= i) return;
     return [
@@ -70,8 +94,11 @@ export class PLParticles {
     ];
   }
 
-  // x, y は [-0.5, 0.5) の範囲
-  // calls func(species, x, y)
+  /**
+   * 全ての粒子に対して func(species, x, y) を呼ぶ<br>
+   * x, y は [-0.5, 0.5) の範囲
+   * @param {function(number,number,number): void} func
+   */
   forEach(func) {
     for(let i = 0; i < this.n; i++)
       func(
@@ -81,7 +108,14 @@ export class PLParticles {
       );
   }
   
-  // 一周回って反対側に現れる点は複数登録する
+  /** 
+   * 頂点シェーダーに渡すデータを作成する<br>
+   * 一周回って反対側に現れる点は複数登録される<br>
+   * Int16Array に入ったデータと粒子数（副成分を含む）を返す
+   * @param {number[][]} palette - カラーパレット
+   * @param {number} psize - 粒子直径
+   * @returns {any[]}
+   */
   vertices(palette, psize) {
     const v = this.memVertices;
     const n = this.n;

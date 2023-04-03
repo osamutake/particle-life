@@ -1,3 +1,5 @@
+import {glBuffer, glProgram, destruct} from '../util.js'
+
 // ----------------- シェーダープログラム
 
 // viewport からはみ出た粒子の端が viewport 内に入る
@@ -74,7 +76,7 @@ const fsrc = `
  * renderer.render(particles, palette, pshape, highlight, ssize, psize, frameBuffer);
  * 
  * // 解放する
- * util.destruct(renderer);
+ * destruct(renderer);
  */
 export class ParticlesRendererGL {
   /**
@@ -82,18 +84,18 @@ export class ParticlesRendererGL {
    */
   constructor(gl) {
     this.gl = gl;
-    this.program = new util.glProgram(gl, vsrc, fsrc);
+    this.program = new glProgram(gl, vsrc, fsrc);
     this.program.use();
     
     // vertices buffer を準備 (データはまだ入れない)
-    this.vbuffer = new util.glBuffer(gl, gl.ARRAY_BUFFER);
+    this.vbuffer = new glBuffer(gl, gl.ARRAY_BUFFER);
   }
 
   /**
    * リソースを解放する
    */
   destructor() {
-    util.destruct(this.program, this.vbuffer);
+    destruct(this.program, this.vbuffer);
   }
   
   /**

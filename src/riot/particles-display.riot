@@ -58,6 +58,26 @@
   </style>
 
   <script>
+    /**
+     * 粒子を表示するディスプレイ<br>
+     * @module riot/particles-display
+     * @example
+     * <!--
+     *   displayIntf = {
+     *     world: () => this.world,
+     *     colorFunc: () => this.colorFunc,
+     *     repelX: NaN,
+     *     repelY: NaN,
+     *     update: null,
+     *     render: null,
+     *     canvas: null
+     *   }
+     * -->
+     * <particles-display width="600" height="600" intf={displayIntf}
+     *      on-restart={()=> restart(true, !!document.fullscreenElement)} 
+     *      on-pause={()=> this.$("#pause").click()}>
+     * </particles-display>
+     */
     import {renderer2d} from "./particles-display-2d.js"
     import {rendererGL} from "./particles-display-gl.js"
 
@@ -68,7 +88,8 @@
           offsetY: 0,
           tail: 0,
           particleSize: 3,
-          scale: 1
+          scale: 1,
+          darken: true,
         })
 
         props.intf.update = (...args) =>
@@ -254,7 +275,7 @@
       },
 
       /// 描画する
-      render() {
+      render(options = {}) {
         const world = this.props.intf.world();
         const colorFunc = this.props.intf.colorFunc();
         if(!world || !colorFunc) return;
@@ -283,10 +304,10 @@
             let {glowr, glowi} = world;
             glowr /= (world.scale / 1.5); // glow 半径は world.scale 相対
 
-            rendererGL.render(gl, world.particles, 
+            rendererGL.render(gl, world.particles, options,
               this.calcParticleSize(), 
               palette, world.pshape, world.highlight, world.glowr / world.scale, world.glowi,
-              this.state.tail,
+              this.state.tail, this.state.darken,
               this.effectiveScale, this.state.offsetX, this.state.offsetY);
             return;
           }
@@ -311,12 +332,11 @@
         
         const palette = [...Array(world.nspecies)].map((_, i) => colorFunc(i/world.nspecies))
         renderer2d.render(   // imported from particle-display-2d.js
-          g,
-          world.particles, 
+          g, world.particles, options,
           document.getElementById('canvas-mode').value, 
           this.calcParticleSize() / this.state.size / 2, 
           palette, 
-          this.state.tail,
+          this.state.tail, this.state.darken,
           this.state.scale, this.state.offsetX, this.state.offsetY
         );
       },

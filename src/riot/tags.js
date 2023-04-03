@@ -16,8 +16,10 @@ import t6 from './help-popup.riot'
 import t7 from './video-holder.riot'
 import t8 from './i18n.riot'
 
+import {camelCase} from '../util.js'
+
 /**
- * @param riot
+ * @param {riot} riot
 */
 export function registerAllTags(riot) {
   installPlugins(riot)
@@ -89,19 +91,8 @@ function installPlugins(riot) {
 
   // イベントディスパッチの省力化
   riot.install( (component) => {
-    component.camelCase = (str) => {
-      return str.split('-').map((w,i) => 
-        (i === 0) ? w.toLowerCase() 
-                  : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-      ).join('')
-    }
-
-    component.kebabCase = (str) => {
-      return str.split(/(?=[A-Z])/).join('-').toLowerCase()
-    }
-
     component.dispatchEvent = (name, data) => {
-      const handler = component.props[component.camelCase("on-" + name)];
+      const handler = component.props[camelCase("on-" + name)];
       if(!handler) return;
       handler(new CustomEvent("name", {detail: data}));
     }

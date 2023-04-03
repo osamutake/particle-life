@@ -5,6 +5,14 @@
 <raw>
   <script>
     export default {
+      /**
+      * html を直接レンダリングする
+      * @module riot/raw
+      * @example
+      * <!-- html に渡した内容をレンダリングする -->
+      * <raw html={html}></raw>
+      */
+
       setInnerHTML() {
         this.root.innerHTML = this.props.html
       },

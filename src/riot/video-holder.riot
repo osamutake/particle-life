@@ -6,6 +6,14 @@
 
   <script>
     export default {
+      /**
+      * 録画データを表示し、ダウンロード用のリンクを提供する<br>
+      * @module riot/video-holder
+      * @example
+      * <!-- blob を `${name}.webm` という名前でダウンロード可能なリンクを提供する -->
+      * <video-holder data-blob={blob} data-name={name}></video-holder>
+      */
+
       onUpdated(props, state) {
         if(!this.props.dataBlob) return;
         const vid = this.$('video');
@@ -13,7 +21,7 @@
         vid.controls = true;
 
         const a = this.$('a');
-        a.download = this.props.dataName.substr(1) + '.webm';
+        a.download = this.props.dataName + '.webm';
         a.href = vid.src;
 
         setTimeout(() => {

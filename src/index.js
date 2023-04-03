@@ -1,26 +1,26 @@
 /* https://github.com/osamutake/particle-life, @license MIT */
+import '../node_modules/bulma/css/bulma.min.css'
+import '../node_modules/@creativebulma/bulma-collapsible/dist/css/bulma-collapsible.min.css'
+import '../node_modules/bulma-slider/dist/css/bulma-slider.min.css'
+
 import * as riot from 'riot'
-import * as util from './util.js'
 
 import recommendations from './recommendations.js'
-import { PLSpeciesDistribution } from './pl-species-distribution.js'
 import { i18n } from  './i18n.js'
 import i18nDictionary from  './i18n-dictionary.js'
+import { load as loadWasm } from './pl-wasm-loader.js'
 
 // すべてのタグを含めコンパイルされたものを obj から読み込む
-import { registerAllTags } from '../obj/riot_tags.js'
+import { registerAllTags } from './riot/tags.js'
 
 /**
  * 起動時に一度だけ呼ばれます
  */
 async function main() {
 
-  // グローバル変数を設定
-  let wasm = await util.loadWasm('particle-life.wasm');
-  window.wasm = wasm;
-  window.util = util;
-  window.PLSpeciesDistribution = PLSpeciesDistribution;
-  window.i18n = i18n; i18n.setDictionary('ja', i18nDictionary);
+  await loadWasm();
+
+  i18n.setDictionary('ja', i18nDictionary);
 
   // riot タグを読み込み
   registerAllTags(riot);
@@ -32,17 +32,24 @@ async function main() {
       document.body.style.setProperty('--100vw', 
                   `${document.body.clientWidth}px`);
   window.addEventListener('resize', measureWindowSize);
-  measureWindowSize();
+  measureWindowSize();  // 始めに一回呼び出しておく
 
-  document.getElementById('locale-en').addEventListener('click', ()=>{
-    i18n.setLocale('en');
-  })
-
-  document.getElementById('locale-ja').addEventListener('click', ()=>{
-    i18n.setLocale('ja');
-  })
+  // riot のバグのせいで <app></app> の中の要素が消えないので
+  // 自分で消さなければならない
+  document.querySelector('.loading').style.display = "none";
 
   riot.mount('app', {recommendations: recommendations});
+
+  // 後から読み込むことで起動を早くしている
+  /*
+  setTimeout(() => {
+    const script = document.createElement('script');
+    script.src ='https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js';
+    script.defer = true;
+    script.type = 'module';
+    document.head.appendChild(script);
+  }, 100);
+  */
 }
 
 window.addEventListener('load', () => {
